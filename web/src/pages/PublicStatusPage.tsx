@@ -25,7 +25,7 @@ export default function PublicStatusPage() {
   const notice = NOTICE[params.get('subscription') ?? '']
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <main className="min-h-dvh bg-bg">
       {isPending ? (
         <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-14" aria-label="Loading status page">
           <div className="skeleton h-10 w-64" aria-hidden />
@@ -58,6 +58,6 @@ export default function PublicStatusPage() {
           />
         </div>
       )}
-    </div>
+    </main>
   )
 }

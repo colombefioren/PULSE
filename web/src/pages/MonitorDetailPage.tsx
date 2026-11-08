@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { ApiError } from '@/api/client'
 import { ResponseChart } from '@/components/charts/ResponseChart'
+import { BadgeSnippet } from '@/components/BadgeSnippet'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { MonitorFormDialog } from '@/components/MonitorFormDialog'
@@ -133,16 +134,17 @@ export default function MonitorDetailPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         <Kpi index={1} label="Uptime, 24h" value={percent(stats.data?.uptime24h ?? null)} />
         <Kpi index={2} label="Uptime, 7d" value={percent(stats.data?.uptime7d ?? null)} />
         <Kpi index={3} label="Uptime, 30d" value={percent(stats.data?.uptime30d ?? null)} />
-        <Kpi index={4} label={`Average, ${range}`} value={millis(stats.data?.avgMs ?? null)} />
-        <Kpi index={5} label={`p95, ${range}`} value={millis(stats.data?.p95 ?? null)} />
-        <Kpi index={6} label={`p99, ${range}`} value={millis(stats.data?.p99 ?? null)} />
+        <Kpi index={4} label="Uptime, 90d" value={percent(stats.data?.uptime90d ?? null)} />
+        <Kpi index={5} label={`Average, ${range}`} value={millis(stats.data?.avgMs ?? null)} />
+        <Kpi index={6} label={`p95, ${range}`} value={millis(stats.data?.p95 ?? null)} />
+        <Kpi index={7} label={`p99, ${range}`} value={millis(stats.data?.p99 ?? null)} />
       </div>
 
-      <Panel index={7} title="Response time" action={<RangePicker value={range} onChange={setRange} label="Response time range" />}>
+      <Panel index={8} title="Response time" action={<RangePicker value={range} onChange={setRange} label="Response time range" />}>
         {series && series.length > 1 ? (
           <ResponseChart series={series} range={range} subject={m.name} />
         ) : stats.isPending ? (
@@ -154,7 +156,13 @@ export default function MonitorDetailPage() {
         )}
       </Panel>
 
-      <Panel index={8} title="Activity">
+      {m.badgeEnabled && canEdit && (
+        <Panel index={9} title="Uptime badge">
+          <BadgeSnippet monitorId={m.id} name={m.name} />
+        </Panel>
+      )}
+
+      <Panel index={10} title="Activity">
         <div role="tablist" aria-label="Activity" className="mb-4 inline-flex rounded-full bg-surface-2 p-1">
           {tabs.map((value) => (
             <button

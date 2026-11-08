@@ -65,6 +65,7 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
   const [headers, setHeaders] = useState(headersToText(initial.headers))
   const [failure, setFailure] = useState(String(initial.failureThreshold))
   const [recovery, setRecovery] = useState(String(initial.recoveryThreshold))
+  const [badge, setBadge] = useState(initial.badgeEnabled ?? false)
   const [errors, setErrors] = useState<Errors>({})
   const channels = useChannels()
   // Until someone chooses, a new monitor alerts every channel and an existing one keeps what it had.
@@ -110,6 +111,7 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
         headers: parsed.headers,
         failureThreshold: failures,
         recoveryThreshold: recoveries,
+        badgeEnabled: badge,
         alertChannelIds: selectedChannels,
       },
       { onSuccess: (saved) => onDone(saved.id) },
@@ -194,7 +196,7 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
         </fieldset>
       )}
 
-      <details className="rounded-2xl border border-border px-4 py-3" open={Boolean(monitor && (codes || keyword || headers))}>
+      <details className="rounded-2xl border border-border px-4 py-3" open={Boolean(monitor && (codes || keyword || headers || badge))}>
         <summary className="cursor-pointer text-sm font-medium">Advanced</summary>
         <div className="mt-4 flex flex-col gap-5">
           <div className="grid gap-5 sm:grid-cols-2">
@@ -253,6 +255,21 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
               error={shown.recovery}
               onChange={(e) => setRecovery(e.target.value)}
             />
+          </div>
+          <div className="field">
+            <label className="flex min-h-9 cursor-pointer items-start gap-3 text-base">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 accent-[var(--brand-ink)]"
+                checked={badge}
+                onChange={(e) => setBadge(e.target.checked)}
+                aria-describedby="badge-hint"
+              />
+              <span>Public uptime badge</span>
+            </label>
+            <p id="badge-hint" className="field-hint">
+              Anyone with the link can see this monitor's 30-day uptime as an image, for a README or a website. Nothing else about it is shared.
+            </p>
           </div>
         </div>
       </details>

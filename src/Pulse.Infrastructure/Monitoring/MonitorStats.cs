@@ -78,6 +78,34 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
         return new RangeStats(row.Total, row.Successes, row.AvgMs is null ? null : (int)Math.Round(row.AvgMs.Value), row.P50, row.P95, row.P99);
     }
 
+    public async Task<RangeStats> NinetyDaysAsync(Guid monitorId, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(now.UtcDateTime);
+        var first = today.AddDays(-89);
+        var yesterday = today.AddDays(-1);
+        var recentFrom = new DateTimeOffset(yesterday.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+
+        var row = await db.Database.SqlQuery<RangeRow>($"""
+            SELECT COALESCE(sum(t.checks), 0)::bigint AS "total",
+                   COALESCE(sum(t.successes), 0)::bigint AS "successes",
+                   NULL::float8 AS "avg_ms",
+                   NULL::int AS "p50",
+                   NULL::int AS "p95",
+                   NULL::int AS "p99"
+            FROM (
+                SELECT checks::bigint AS checks, successes::bigint AS successes
+                FROM monitor_daily_stats
+                WHERE monitor_id = {monitorId} AND day >= {first} AND day < {yesterday}
+                UNION ALL
+                SELECT count(*), count(*) FILTER (WHERE success)
+                FROM check_results
+                WHERE monitor_id = {monitorId} AND checked_at >= {recentFrom}
+            ) t
+            """).SingleAsync(cancellationToken);
+
+        return new RangeStats(row.Total, row.Successes, null, null, null, null);
+    }
+
     public async Task<IReadOnlyList<SeriesPointDto>> SeriesAsync(Guid monitorId, DateTimeOffset since, TimeSpan bucket, CancellationToken cancellationToken)
     {
         var seconds = bucket.TotalSeconds;

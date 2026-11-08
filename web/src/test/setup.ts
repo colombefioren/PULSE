@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 import { demo } from '@/data/demo'
 import { leaveDemo } from '@/session/demoMode'
+
+// The first screen of a file compiles its lazy route on demand, which can take over a second on a busy machine.
+configure({ asyncUtilTimeout: 5000 })
 
 // Tests never open a real socket; the live layer is exercised through its pure `apply` functions.
 vi.mock('@/live/connection', () => ({ connectLive: vi.fn().mockResolvedValue({ stop: vi.fn() }) }))

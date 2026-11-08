@@ -3,6 +3,40 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
+## [1.0.0] - 2026-11-08
+
+Polish and launch (milestone M5).
+
+### Added
+- Retention that never runs a `DELETE` over check results: the worker sums each month into hourly and daily
+  rollups and then drops the whole monthly partition once all of it is older than 30 days. Hourly rollups are kept
+  for a year and daily rollups forever.
+- 90-day uptime on every monitor, read from the daily totals plus the raw checks of the last two days, so it is right
+  whether or not the rollup job has run since.
+- A public uptime badge, `/badge/{monitorId}.svg`: a shields-style image of the last 30 days, cached for five
+  minutes, rate limited and off until a team switches it on for that monitor. A switched-off monitor and an unknown id
+  get the same response. The monitor page shows the badge and the Markdown to paste.
+- A shared, read-only demo account. With `Demo__Enabled=true`, "Try the demo" signs a visitor in to a real team that
+  watches well-known public websites; without it the button opens the built-in sample workspace as before. The demo
+  account is a Viewer, cannot sign in with a password and cannot create teams.
+- A command palette on Ctrl+K (Cmd+K on a Mac) and in the top bar: jump to any monitor or page, create a monitor,
+  switch team and change the theme.
+- End-to-end tests with Playwright against the real stack in Docker: sign up and add a monitor, an outage that opens an
+  incident the status page shows, recovery, and the badge. They run in CI.
+- `Checks__AllowPrivateTargets`, off by default, for the end-to-end stack whose monitored site is a container.
+- README with a pitch, screenshots, an architecture diagram and the design decisions.
+
+### Fixed
+- The worker could not start in the Development environment: the container check found that it could not build the
+  account services without the authentication services, and that the alert dispatcher held a scoped transport for its
+  whole life. A test now builds the worker's container with every registration checked.
+- A public status page could miss a live change: the page is served with `Cache-Control: max-age=30`, and the browser
+  answered the refetch that a live event triggers from its own copy. Reads from the web app now revalidate.
+- A badge that was requested before it was switched on stayed "unavailable" for five minutes; that answer is now
+  remembered for ten seconds.
+- The public status page has a `main` landmark, and the response chart no longer prints two labels over each other
+  when it has only a couple of points.
+
 ## [0.5.0] - 2026-11-08
 
 Status pages (milestone M4).

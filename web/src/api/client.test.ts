@@ -22,6 +22,24 @@ describe('api client', () => {
     expect(server.called('GET /api/auth/csrf')).toHaveLength(0)
   })
 
+  it('reads past the browser cache, so a live update is not answered with the page it replaces', async () => {
+    mockApi({ 'GET /api/things': { body: [] } })
+    const seen: Array<RequestCache | undefined> = []
+    const real = globalThis.fetch
+    globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+      seen.push(init?.cache)
+      return real(input, init)
+    }) as typeof fetch
+
+    try {
+      await api.get('/api/things')
+    } finally {
+      globalThis.fetch = real
+    }
+
+    expect(seen).toEqual(['no-cache'])
+  })
+
   it('turns a problem response into an ApiError with its code and field messages', async () => {
     mockApi({
       'POST /api/things': { status: 400, body: problem('validation_failed', 'Check the form.', { email: ['Already used'] }) },

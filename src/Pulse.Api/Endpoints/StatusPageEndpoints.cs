@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Pulse.Api.Infrastructure;
 using Pulse.Api.Public;
 using Pulse.Application.Common;
+using Pulse.Application.Monitors;
 using Pulse.Application.StatusPages;
 using Pulse.Domain.StatusPages;
 
@@ -143,6 +145,40 @@ public static class StatusPageEndpoints
 
         return routes;
     }
+
+    /// <summary>
+    /// The uptime badge people embed in a README. It answers for monitors whose team turned it on and says "unavailable"
+    /// for everything else, with the same response for a switched-off monitor and a made-up id.
+    /// </summary>
+    public static IEndpointRouteBuilder MapBadgeEndpoints(this IEndpointRouteBuilder routes)
+    {
+        routes.MapGet("/badge/{monitorId:guid}.svg", async (Guid monitorId, HttpContext context, BadgeService service, IMemoryCache cache, IConfiguration configuration, CancellationToken ct) =>
+        {
+            // Five minutes by default; zero turns it off, which tests use to see a change at once.
+            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Badge:CacheSeconds", 300));
+            var key = $"badge:{monitorId}";
+            if (ttl <= TimeSpan.Zero || !cache.TryGetValue(key, out BadgeDto? badge))
+            {
+                badge = await service.GetAsync(monitorId, ct);
+                if (ttl > TimeSpan.Zero)
+                {
+                    cache.Set(key, badge, Shorter(ttl, badge));
+                }
+            }
+
+            // "Unavailable" is kept only briefly, so a badge switched on a moment ago does not look broken for minutes.
+            context.Response.Headers.CacheControl = $"public, max-age={(int)Shorter(ttl, badge).TotalSeconds}";
+            return badge is null
+                ? Results.Content(BadgeSvg.Unavailable(), "image/svg+xml", statusCode: StatusCodes.Status404NotFound)
+                : Results.Content(BadgeSvg.Uptime(badge.UptimePercent), "image/svg+xml");
+        }).RequireRateLimiting("public-read").WithTags("Public status");
+
+        return routes;
+    }
+
+    private static TimeSpan Shorter(TimeSpan ttl, BadgeDto? badge) => badge is null && ttl > UnavailableTtl ? UnavailableTtl : ttl;
+
+    private static readonly TimeSpan UnavailableTtl = TimeSpan.FromSeconds(10);
 
     private static string Landing(AppOptions options, string? slug, string result)
     {

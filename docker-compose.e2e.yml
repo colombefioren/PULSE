@@ -1,0 +1,26 @@
+# End-to-end stack: the normal stack plus a website whose health the tests can switch.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build
+#   cd e2e && npm ci && npx playwright install chromium && npx playwright test
+#
+# Checks refuse private addresses everywhere else. Here the monitored site is a container on the same network, so
+# the API and the worker are told to allow it. Never set Checks__AllowPrivateTargets on a real deployment.
+
+services:
+  target:
+    image: node:24-alpine
+    working_dir: /e2e
+    command: node target.mjs
+    volumes:
+      - ./e2e:/e2e:ro
+    ports:
+      - "4010:4010"
+
+  api:
+    environment:
+      Checks__AllowPrivateTargets: "true"
+      Demo__Enabled: "true"
+
+  worker:
+    environment:
+      Checks__AllowPrivateTargets: "true"

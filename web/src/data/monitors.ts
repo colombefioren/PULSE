@@ -116,6 +116,7 @@ export function useMonitorStats(id: string, range: ChartRange) {
           uptime24h: monitor?.uptime24h ?? null,
           uptime7d: monitor?.uptime7d ?? null,
           uptime30d: monitor?.uptime30d ?? null,
+          uptime90d: null,
           series,
         }
       }

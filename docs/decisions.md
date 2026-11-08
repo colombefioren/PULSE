@@ -369,3 +369,45 @@ page up to 30 components.
 ### Accent colour
 The accent paints a stripe and the subscribe button, never body text. The button text is black or white, whichever
 contrasts better, and the editor says so when neither reaches 4.5:1 for the chosen colour.
+
+## M5: retention, badges, demo and launch
+
+### Drop partitions, never delete rows
+`check_results` is the one table that grows without bound, so it is partitioned by month and retention is
+`DROP TABLE` on a whole partition once its last day is older than 30 days. A `DELETE` of that many rows would
+bloat the table, take locks and need vacuuming; dropping a partition is instant and returns the space. Before a
+month is dropped the worker runs the daily and hourly rollups over it, so nothing the product shows depends on the
+raw rows afterwards. Rollups are idempotent upserts, so running them twice, or after a restart, is harmless. The
+partition names come from `pg_inherits` and must match `check_results_YYYY_MM`, so nothing a user types reaches
+the statement. Hourly rollups (a small table) are kept 365 days with a plain delete; daily rollups are kept forever.
+
+### 90-day uptime reads two sources
+Days before yesterday come from the daily totals; yesterday and today come from the raw checks. The rollup job
+refreshes yesterday and today every ten minutes, but reading them raw means the figure is correct even if the job
+has not run, and a freshly dropped partition can never leave a gap.
+
+### The badge says nothing it was not asked to
+A badge is public, so it is opt-in per monitor and shows one number. "Switched off" and "no such monitor" return the
+same 404 image, so ids cannot be probed. The result is cached for five minutes in memory and by browsers and
+proxies, and shares the public read rate limit. Colours are chosen so white text keeps at least 4.5:1 contrast.
+
+### A real demo that cannot hurt anyone
+"Try the demo" signs in to a shared account on a real team that watches six well-known public websites, so the
+visitor sees live data instead of a script. The account is a Viewer, its password is random and thrown away, and
+the only way in is `POST /api/demo/session`, which is rate limited. It cannot create teams, which would otherwise
+let any visitor spend the demo's storage. If the server has no demo (`Demo__Enabled` is false) the endpoint answers
+404 and the web app falls back to the built-in sample workspace; someone already signed in is never switched to it.
+
+### Why the command palette is hand-built
+It needs a list, a filter and keyboard handling. A library for that would add more weight than the couple of hundred lines it
+saves, and the initial bundle has a 250 KB budget. Matching is "every word appears somewhere", names that start with
+the first word come first, and the whole thing is a Radix dialog so focus, Escape and screen readers already work.
+
+### End-to-end tests need one exception to the network rule
+Checks refuse private addresses, which is exactly where a test site in a container lives. `Checks__AllowPrivateTargets`
+lifts the rule in the API and the worker, is false by default, and is set only in `docker-compose.e2e.yml`.
+
+### Lessons from running the real stack
+The first run of the worker in the Development environment failed: container validation found a singleton that held
+a scoped service, and account services that could not be built without the authentication services. Neither showed
+in the unit or integration tests, because those never build the worker's container. `CompositionTests` does now.

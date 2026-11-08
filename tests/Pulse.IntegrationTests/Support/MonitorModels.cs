@@ -17,7 +17,8 @@ public sealed record MonitorInfo(
     int RecoveryThreshold,
     string State,
     DateTimeOffset? LastCheckedAt,
-    int? LastResponseMs);
+    int? LastResponseMs,
+    bool BadgeEnabled = false);
 
 public sealed record MonitorListItem(MonitorInfo Monitor, double? Uptime24h, List<int?> Sparkline);
 
@@ -25,7 +26,7 @@ public sealed record CheckInfo(DateTimeOffset CheckedAt, bool Success, int? Stat
 
 public sealed record CheckPage(List<CheckInfo> Items, DateTimeOffset? NextBefore);
 
-public sealed record UptimeInfo(double? Last24Hours, double? Last7Days, double? Last30Days);
+public sealed record UptimeInfo(double? Last24Hours, double? Last7Days, double? Last30Days, double? Last90Days);
 
 public sealed record SeriesPoint(DateTimeOffset At, int? AvgMs, int Checks, int Failures);
 

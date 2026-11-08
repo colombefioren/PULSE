@@ -59,7 +59,7 @@ Infrastructure.
    the same save. The dispatcher sends each as an email built from the database at send time, so someone who
    unsubscribed in between gets nothing.
 
-## What exists today (v0.5.0)
+## What exists today (v1.0.0)
 
 - The solution structure and project references above.
 - API: structured JSON logging, correlation ids (`X-Correlation-Id`), `/health/live`, `/health/ready` (checks
@@ -86,10 +86,24 @@ Infrastructure.
 - Status pages: pages, components and a logo stored in the database (`Pulse.Application/StatusPages`), the
   public page assembled by `PublicStatusService`, `StatusCache`, the anonymous `StatusHub`, public endpoints with
   per-address rate limits, double opt-in subscribers and the subscriber mailer.
-- Daily rollups (`monitor_daily_stats`) written by the worker.
+- Rollups: `monitor_daily_stats` and `monitor_hourly_stats` written by the worker from the raw results.
+- Retention (`CheckRetention` in the worker): once a month's partition is entirely older than 30 days and its
+  rollups are written, the partition is dropped with `DROP TABLE`. Hourly rollups are kept a year, daily ones
+  forever, and the 90-day uptime on a status page or monitor is computed from the daily rollups plus the raw
+  results of yesterday and today.
+- Badges: `/badge/{monitorId}.svg` (`BadgeService`, `BadgeSvg`), off per monitor until switched on, cached in
+  memory, and the same 404 for "off" and "no such monitor". An unavailable badge is cached for ten seconds only.
+- Demo: `POST /api/demo/session` signs a visitor in to a shared Viewer account of a team whose monitors check
+  real public sites (`DemoService`, behind `Demo:Enabled`). Without it the web app falls back to its built-in
+  sample workspace, which needs no server.
+- Command palette in the web app (`Ctrl+K`), built on the Radix dialog with combobox and listbox semantics.
+- End-to-end tests (`e2e/`, Playwright) run against the whole Compose stack plus a small target site whose health
+  they switch (`docker-compose.e2e.yml`, `Checks:AllowPrivateTargets`), as a job in CI.
 - Docker Compose and the CI/CD workflows.
 
-Steps 1 to 5 of the flow above are real. The rollups (6) arrive in M5.
+All of the flow above is real. The worker reads its collaborators per scope: the outbox dispatcher is a singleton
+that opens a scope for each message, because the alert transport depends on scoped services. `CompositionTests`
+builds a worker-shaped container with `ValidateOnBuild` so a lifetime mistake fails a test instead of the worker.
 
 ## Frontend
 

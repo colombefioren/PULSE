@@ -47,7 +47,7 @@ public sealed record MonitorDto(
 /// <summary>A monitor as the list shows it: the monitor, its uptime over 24 hours and 24 hourly response averages.</summary>
 public sealed record MonitorListItemDto(MonitorDto Monitor, double? Uptime24h, IReadOnlyList<int?> Sparkline);
 
-public sealed record UptimeDto(double? Last24Hours, double? Last7Days, double? Last30Days);
+public sealed record UptimeDto(double? Last24Hours, double? Last7Days, double? Last30Days, double? Last90Days = null);
 
 public sealed record SeriesPointDto(DateTimeOffset At, int? AvgMs, int Checks, int Failures);
 

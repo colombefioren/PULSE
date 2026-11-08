@@ -162,11 +162,12 @@ public static class StatusPageEndpoints
                 badge = await service.GetAsync(monitorId, ct);
                 if (ttl > TimeSpan.Zero)
                 {
-                    cache.Set(key, badge, ttl);
+                    cache.Set(key, badge, Shorter(ttl, badge));
                 }
             }
 
-            context.Response.Headers.CacheControl = $"public, max-age={(int)ttl.TotalSeconds}";
+            // "Unavailable" is kept only briefly, so a badge switched on a moment ago does not look broken for minutes.
+            context.Response.Headers.CacheControl = $"public, max-age={(int)Shorter(ttl, badge).TotalSeconds}";
             return badge is null
                 ? Results.Content(BadgeSvg.Unavailable(), "image/svg+xml", statusCode: StatusCodes.Status404NotFound)
                 : Results.Content(BadgeSvg.Uptime(badge.UptimePercent), "image/svg+xml");
@@ -174,6 +175,10 @@ public static class StatusPageEndpoints
 
         return routes;
     }
+
+    private static TimeSpan Shorter(TimeSpan ttl, BadgeDto? badge) => badge is null && ttl > UnavailableTtl ? UnavailableTtl : ttl;
+
+    private static readonly TimeSpan UnavailableTtl = TimeSpan.FromSeconds(10);
 
     private static string Landing(AppOptions options, string? slug, string result)
     {

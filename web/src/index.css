@@ -295,3 +295,17 @@
     }
   }
 }
+
+/* The icon mark's heartbeat line draws in left to right once on load. */
+.logo-pulse-draw {
+  animation: logo-pulse-draw 600ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes logo-pulse-draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}

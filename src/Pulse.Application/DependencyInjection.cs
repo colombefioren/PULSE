@@ -5,6 +5,7 @@ using Pulse.Application.Dashboard;
 using Pulse.Application.Incidents;
 using Pulse.Application.Monitors;
 using Pulse.Application.Organizations;
+using Pulse.Application.StatusPages;
 
 namespace Pulse.Application;
 
@@ -23,6 +24,10 @@ public static class DependencyInjection
         services.AddScoped<IncidentService>();
         services.AddScoped<AlertChannelService>();
         services.AddScoped<DashboardService>();
+        services.AddScoped<StatusPageService>();
+        services.AddScoped<PublicStatusService>();
+        services.AddScoped<SubscriberNotifier>();
+        services.AddScoped<SubscriberMailer>();
         return services;
     }
 }

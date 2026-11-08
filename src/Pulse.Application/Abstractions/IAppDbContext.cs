@@ -3,6 +3,7 @@ using Pulse.Domain.Alerts;
 using Pulse.Domain.Incidents;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
+using Pulse.Domain.StatusPages;
 
 namespace Pulse.Application.Abstractions;
 
@@ -29,6 +30,18 @@ public interface IAppDbContext
     DbSet<AlertDelivery> AlertDeliveries { get; }
 
     DbSet<OutboxMessage> OutboxMessages { get; }
+
+    DbSet<StatusPage> StatusPages { get; }
+
+    DbSet<StatusComponent> StatusComponents { get; }
+
+    DbSet<ComponentMonitor> ComponentMonitors { get; }
+
+    DbSet<IncidentComponent> IncidentComponents { get; }
+
+    DbSet<Subscriber> Subscribers { get; }
+
+    DbSet<MonitorDailyStat> MonitorDailyStats { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

@@ -37,40 +37,40 @@ export function AppShell() {
     <Tooltip.Provider>
       <a
         href="#content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-brand focus:px-3 focus:py-2 focus:text-brand-ink"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-brand focus:px-4 focus:py-2 focus:text-brand-ink"
       >
         Skip to content
       </a>
 
-      <div className="flex min-h-dvh">
-        <aside
-          className={`sticky top-0 hidden h-dvh shrink-0 border-r border-border bg-surface md:block ${
-            collapsed ? 'w-14' : 'w-56'
-          }`}
-        >
-          <Sidebar collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
-        </aside>
+      <div className="min-h-dvh bg-canvas md:p-4 lg:p-6">
+        <div className="mx-auto flex min-h-dvh max-w-[1520px] gap-3 md:min-h-[calc(100dvh-2rem)] lg:min-h-[calc(100dvh-3rem)] lg:gap-4">
+          <aside
+            className={`hidden shrink-0 rounded-shell bg-panel transition-[width] duration-200 md:sticky md:top-6 md:block md:h-[calc(100dvh-3rem)] ${
+              collapsed ? 'w-[76px]' : 'w-64'
+            }`}
+          >
+            <Sidebar collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+          </aside>
 
-        <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 md:hidden" />
-            <Dialog.Content
-              aria-describedby={undefined}
-              className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-surface shadow-overlay md:hidden"
-            >
-              <Dialog.Title className="sr-only">Navigation</Dialog.Title>
-              <Sidebar onNavigate={() => setDrawerOpen(false)} />
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+          <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50 md:hidden" />
+              <Dialog.Content
+                aria-describedby={undefined}
+                className="fixed inset-y-2 left-2 z-50 w-72 rounded-shell bg-panel shadow-overlay md:hidden"
+              >
+                <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+                <Sidebar onNavigate={() => setDrawerOpen(false)} />
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar onOpenNav={() => setDrawerOpen(true)} />
-          <main id="content" tabIndex={-1} className="flex-1 px-4 py-6 md:px-8">
-            <div className="max-w-5xl">
+          <div className="flex min-w-0 flex-1 flex-col bg-bg md:rounded-shell">
+            <Topbar onOpenNav={() => setDrawerOpen(true)} />
+            <main id="content" tabIndex={-1} className="flex-1 px-4 pb-8 pt-2 md:px-8">
               <Outlet />
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </div>
     </Tooltip.Provider>

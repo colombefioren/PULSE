@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Mvc.Testing;
+using Pulse.IntegrationTests.Support;
 
 namespace Pulse.IntegrationTests.Api;
 
-public class CorrelationIdTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+[Collection(ApiCollection.Name)]
+public class CorrelationIdTests(PulseApi factory)
 {
     private const string Header = "X-Correlation-Id";
     private readonly HttpClient _client = factory.CreateClient();

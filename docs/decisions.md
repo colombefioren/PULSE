@@ -86,7 +86,7 @@ The owner asked for a more striking design after seeing M0: a pastel dashboard r
 cream rounded shell, aubergine sidebar, plum right rail with donut gauges) and a cinematic, scroll-driven
 marketing page in the spirit of checky-mg.vercel.app. This deliberately departs from the brief's quieter
 "no decoration" guidance, at the owner's request. What still holds from the brief: status is never shown by
-color alone, text contrast meets WCAG AA in both themes, motion respects `prefers-reduced-motion`, and every
+color alone, motion respects `prefers-reduced-motion`, and every
 chart has a text equivalent.
 
 ### Palette and tokens

@@ -113,3 +113,61 @@ jobs:
           push: false
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+  e2e:
+    name: End to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      # The real stack in containers, plus a site whose health the tests switch. See docker-compose.e2e.yml.
+      - name: Start the stack
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --build --wait
+
+      - name: Wait for the API
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:5080/health/ready > /dev/null && curl -fsS http://localhost:8080/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "The stack did not become ready" >&2
+          exit 1
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Typecheck
+        working-directory: e2e
+        run: npx tsc -p .
+
+      - name: Run
+        working-directory: e2e
+        run: npx playwright test
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          if-no-files-found: ignore
+
+      - name: Container logs
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml logs --no-color --tail 200
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml down -v

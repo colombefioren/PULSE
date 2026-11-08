@@ -108,7 +108,7 @@ export default function LandingPage() {
           Skip to content
         </a>
 
-        <header className="flex items-center justify-between rounded-full bg-panel px-5 py-3 md:px-7">
+        <header className="sticky top-3 z-40 flex items-center justify-between rounded-full bg-panel px-5 py-3 shadow-[0_12px_32px_-16px_rgba(11,11,12,0.5)] md:top-5 md:px-7">
           <Link to="/" aria-label="Pulse home">
             <Logo height={26} iconGap={10} />
           </Link>
@@ -157,7 +157,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <section id="features" aria-labelledby="features-heading" className="px-3 pb-6 pt-20 md:px-10 md:pt-28">
+          <section id="features" aria-labelledby="features-heading" className="scroll-mt-24 px-3 pb-6 pt-20 md:px-10 md:pt-28">
             <div id="features-heading">
               <Heading eyebrow="How it works">From a failed check to a fixed incident, in four steps.</Heading>
             </div>
@@ -174,7 +174,7 @@ export default function LandingPage() {
             </ul>
           </section>
 
-          <section id="status" aria-labelledby="status-heading" className="rounded-shell bg-bg px-4 py-14 md:px-12 md:py-20">
+          <section id="status" aria-labelledby="status-heading" className="scroll-mt-24 rounded-shell bg-bg px-4 py-14 md:px-12 md:py-20">
             <div id="status-heading">
               <Heading eyebrow="Live preview">This is what your customers see.</Heading>
             </div>

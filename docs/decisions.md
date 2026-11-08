@@ -82,16 +82,22 @@ Commits follow the owner's COCO--PORTFOLIO history: `type: lowercase description
 ## Design refresh (before M1)
 
 ### Visual direction
-The owner asked for a more striking design after seeing M0: a pastel dashboard reference (mauve canvas,
-cream rounded shell, aubergine sidebar, plum right rail with donut gauges) and a cinematic, scroll-driven
-marketing page in the spirit of checky-mg.vercel.app. This deliberately departs from the brief's quieter
-"no decoration" guidance, at the owner's request. What still holds from the brief: status is never shown by
-color alone, motion respects `prefers-reduced-motion`, and every
-chart has a text equivalent.
+The owner asked for a more striking design after seeing M0 and sent a pastel dashboard as a reference. What is
+taken from it is the layout only: a floating sidebar, a large rounded shell, stat tiles, and a right-hand rail of
+ring gauges. The colors stay the original Pulse palette (warm off-white, white cards, near-black ink, brand
+yellow `#fac303`), at the owner's instruction. A first attempt copied the reference's mauve palette and borrowed
+a cinematic scroll tunnel from another site; the owner rejected both, so the palette is back to the original and
+the tunnel, scroll ruler and giant uppercase type are gone. What still holds from the brief: status is never shown
+by color alone, motion respects `prefers-reduced-motion`, and every chart has a text equivalent.
 
 ### Palette and tokens
-Canvas `#d9c5d0`, cream shell `#f6f0e7`, aubergine panel `#2a1a2e`, plum `#8a6786`, brand yellow `#fac303`
-(sampled from the logo). All of them are CSS variables with a dark override, so components never hold a hex.
+Light: canvas `#e8e6e0`, shell `#f8f7f5`, cards `#ffffff`, ink `#0b0b0c`. The sidebar and the gauge rail are near-black in
+both themes so the yellow logo always has contrast. Everything is a CSS variable with a dark override, so
+components never hold a hex.
+
+### Landing page
+A calm page in the app's own language: a floating black header, a hero with a live product preview built from the
+real chart components, four feature cards, the live public status page embedded, and a closing call to action.
 
 ### Charts
 Charts are hand-written SVG with the geometry in `lib/chart.ts` so it can be unit-tested: ring gauge,
@@ -111,7 +117,3 @@ should not touch any page. Pause, resume and acknowledge are optimistic, as they
 ### Accounts are not open yet
 The sign in and sign up forms validate inline, but submitting shows "Accounts are not open yet" with a link
 to the demo workspace. Faking a successful login would mislead; real accounts arrive in M1.
-
-### Tooling
-`web/src/lib/tunnel.ts` keeps the landing tunnel's maths pure; the component only writes transforms to the
-DOM from `requestAnimationFrame`. With reduced motion the tunnel is replaced by a static layout.

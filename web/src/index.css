@@ -17,57 +17,58 @@
 /*
  * Design tokens.
  *
- * Light: a dusty mauve canvas, a cream shell, mauve-tinted cards and a dark aubergine sidebar,
- * with the brand yellow reserved for the logo, primary actions, focus and chart highlights.
- * Dark: the same structure in deep aubergine. Dark is tuned separately: surfaces step up in
- * lightness, borders are lighter than the surfaces they separate, and status colors are lighter.
+ * Light: the original Pulse palette (warm off-white, white cards, near-black ink, brand yellow) laid out
+ * as a floating shell: a stone canvas, a rounded off-white shell, a near-black sidebar and a dark gauge rail.
+ * The brand yellow is used for the logo, primary actions, focus and chart highlights.
+ * Dark: the same structure on near-black. Dark is tuned separately: surfaces step up in lightness,
+ * borders are lighter than the surfaces they separate, and status colors are lighter.
  * data-theme is set before first paint by the script in index.html.
  */
 :root {
   --brand: #fac303;
   --brand-hover: #e6b100;
-  --brand-ink: #2a1a2e; /* text and icons placed on a brand fill */
+  --brand-ink: #0b0b0c; /* text and icons placed on a brand fill */
 
-  --canvas: #d9c5d0;
-  --bg: #f6f0e7;
-  --surface: #eadcdf;
-  --surface-2: #dfcdd3;
-  --surface-hover: #e3d3d8;
-  --border: #d8c6cc;
-  --border-strong: #bda6b0;
-  --text: #2a1a2e;
-  --text-muted: #5f4b64;
-  --text-subtle: #6e5a73;
+  --canvas: #e8e6e0;
+  --bg: #f8f7f5;
+  --surface: #ffffff;
+  --surface-2: #f2f1ee;
+  --surface-hover: #f2f1ee;
+  --border: #e4e2dd;
+  --border-strong: #cfccc5;
+  --text: #0b0b0c;
+  --text-muted: #5c5a54;
+  --text-subtle: #6b6962;
 
   /* Sidebar and other "ink" panels stay dark in both themes so the yellow logo always has contrast. */
-  --panel: #2a1a2e;
-  --panel-2: #38253d;
-  --panel-text: #f6ecf2;
-  --panel-muted: #bfaac5;
+  --panel: #0b0b0c;
+  --panel-2: #1a1a1c;
+  --panel-text: #f3f2ef;
+  --panel-muted: #a5a29b;
 
-  /* Gauge cards */
-  --plum: #8a6786;
-  --plum-text: #fbf5ec;
-  --plum-track: rgb(255 255 255 / 20%);
+  /* Gauge rail */
+  --plum: #1a1a1c;
+  --plum-text: #f3f2ef;
+  --plum-track: rgb(255 255 255 / 14%);
 
-  --overlay-shadow: 0 12px 32px rgb(42 26 46 / 18%), 0 0 0 1px rgb(42 26 46 / 8%);
-  --ring-outer: #2a1a2e;
+  --overlay-shadow: 0 8px 24px rgb(11 11 12 / 12%), 0 0 0 1px rgb(11 11 12 / 6%);
+  --ring-outer: #0b0b0c;
 
-  --status-up: #17693a;
-  --status-down: #b3261e;
-  --status-degraded: #b4540a;
-  --status-maintenance: #1f4fb8;
-  --status-paused: #6e5a73;
+  --status-up: #15803d;
+  --status-down: #b91c1c;
+  --status-degraded: #c2410c;
+  --status-maintenance: #1d4ed8;
+  --status-paused: #6b6962;
 
-  /* Same hues as the status colors, tuned to sit on dark plum and ink panels. */
+  /* Same hues as the status colors, tuned to sit on the dark rail and ink panels. */
   --on-dark-up: #86efac;
   --on-dark-down: #fca5a5;
   --on-dark-degraded: #fdba74;
 
   /* Chart line must clear 3:1 on every surface, so it is ink on light and brand on dark. */
-  --chart-line: #2a1a2e;
+  --chart-line: #0b0b0c;
   --chart-area: rgb(250 195 3 / 38%);
-  --chart-grid: rgb(42 26 46 / 12%);
+  --chart-grid: rgb(11 11 12 / 10%);
 
   color-scheme: light;
 }
@@ -75,31 +76,31 @@
 :root[data-theme="dark"] {
   --brand-hover: #ffd23d;
 
-  --canvas: #100a13;
-  --bg: #1b1220;
-  --surface: #271b2d;
-  --surface-2: #31233a;
-  --surface-hover: #2d2034;
-  --border: #3a2b43;
-  --border-strong: #52405c;
-  --text: #f4ebf1;
-  --text-muted: #b7a5bc;
-  --text-subtle: #9c8aa2;
+  --canvas: #050506;
+  --bg: #0b0b0c;
+  --surface: #131314;
+  --surface-2: #1a1a1c;
+  --surface-hover: #1f1f21;
+  --border: #272729;
+  --border-strong: #38383b;
+  --text: #f3f2ef;
+  --text-muted: #a5a29b;
+  --text-subtle: #8c8982;
 
-  --panel: #0e0811;
-  --panel-2: #1d1223;
+  --panel: #000000;
+  --panel-2: #131314;
 
-  --plum: #4a3350;
-  --plum-track: rgb(255 255 255 / 14%);
+  --plum: #131314;
+  --plum-track: rgb(255 255 255 / 12%);
 
-  --overlay-shadow: 0 12px 32px rgb(0 0 0 / 60%), 0 0 0 1px rgb(255 255 255 / 8%);
+  --overlay-shadow: 0 8px 24px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 8%);
   --ring-outer: transparent;
 
   --status-up: #4ade80;
   --status-down: #f87171;
   --status-degraded: #fb923c;
   --status-maintenance: #60a5fa;
-  --status-paused: #9c8aa2;
+  --status-paused: #8c8982;
 
   --chart-line: #fac303;
   --chart-area: rgb(250 195 3 / 16%);

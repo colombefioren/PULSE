@@ -257,10 +257,54 @@ is no shared message bus and no sticky sessions. Notes:
 - Limits: 50 monitors per team (409 `monitor_limit_reached`), 10 headers, intervals 30 s / 1 / 5 / 10 / 30 min,
   timeout 1-30 s and never longer than the interval.
 
-### The dashboard waits for incidents
-Real accounts land on Monitors. The dashboard's tiles and gauges depend on incidents and alert data from M3, so
-it stays a demo screen until then and `/dashboard` sends a real account to `/monitors`.
-
 ### Demo stays read-only
 In the demo workspace the Add, Edit and Delete controls are hidden: they would have nothing to save to. Pausing
 still works because the simulation implements it.
+
+## M3: incidents and alerts
+
+### An incident is the monitor's state change, nothing more
+A monitor going Down opens one incident and coming back Up resolves it. The thresholds on the monitor (down after
+N failures, up after M passes) already decide when that happens, so there is no second evaluator to disagree with
+the first. A partial unique index (`ux_incidents_open_per_monitor`) lets the database refuse a second open
+incident for a monitor, whatever a bug or a race tries. Pausing, deleting or changing what a monitor checks
+closes its open incident quietly, with no alert, because nothing recovered.
+
+### Alerts go through an outbox
+The incident, its timeline entry, one `alert_deliveries` row and one `outbox_messages` row per channel are
+written in the same transaction as the check result. If that save fails nothing was announced, and if it succeeds
+the alert cannot be lost even if the worker dies a millisecond later. A unique index on (channel, incident, kind)
+means a channel is never alerted twice for the same change, however often the recorder retries.
+
+### The dispatcher is at-least-once
+Workers claim due outbox rows with `FOR UPDATE SKIP LOCKED` and take a 5 minute lease, then send outside the
+transaction (up to 8 at a time). A crash after sending but before recording leaves the lease to expire and the
+message is sent again. For an alert, a duplicate is far better than a miss, and every delivery has a stable id
+(`X-Pulse-Delivery`) so receivers can deduplicate. Failures retry after 1, 5, 15 and 60 minutes, five attempts in
+all, then the delivery is marked failed and stays visible in the channel's history.
+
+### Secrets are encrypted and shown once
+A channel's settings (recipients, webhook address, signing secret) are JSON encrypted with ASP.NET Data
+Protection before they reach the database. The API never returns a webhook address, only its host, because
+Slack and Discord addresses are themselves credentials. A generic webhook's signing secret (`whsec_...`) is
+returned once on create and on rotate. Requests are signed as `sha256=` plus the HMAC-SHA256 of the exact body.
+The Data Protection keys live in the database (`data_protection_keys`), so the API and every worker read the same keys and a restart loses nothing.
+
+### Outgoing requests get the same SSRF treatment as checks
+Webhook sends use a dedicated client with no proxy and no redirects, a 10 second timeout, and the same
+connect-time address guard as the check engine (`GuardedConnect`). A webhook that answers with a redirect is
+treated as a failure rather than followed to somewhere the user never approved.
+
+### Test alerts run inline
+"Send test alert" sends immediately and returns the result instead of queueing, because the person is watching
+and wants to know now. It is limited to 5 per minute per channel (429 `too_many_tests`). Test deliveries show in
+the history like any other.
+
+### Limits
+20 channels per team, 10 email recipients per channel, 140 characters for an incident title and 2000 for a
+message. Viewers read incidents and channels; Owners and Admins write.
+
+### The dashboard is the summary endpoint
+`GET /api/orgs/{id}/summary` returns the counts, open incidents and uptime for 24 hours, 7 and 30 days, all
+aggregated in PostgreSQL, and `/series` returns the response-time series. Incident and status events from the
+socket invalidate them, with a one minute poll as a safety net.

@@ -44,15 +44,15 @@ Infrastructure.
    `FOR UPDATE SKIP LOCKED`, and pushes them into a bounded channel.
 2. A fixed pool of check runners consumes the channel, makes the HTTP request with a timeout and writes a
    `check_result`.
-3. The incident evaluator updates monitor state. After N consecutive failures it opens an incident, and after
-   M consecutive successes it resolves it.
-4. State changes write an outbox row in the same transaction. The alert dispatcher reads the outbox and sends
-   email and webhooks with retries.
+3. The incident workflow runs in the same save as the result. When a monitor goes Down it opens an incident, and
+   when it comes back Up it resolves it.
+4. The same save stages one delivery and one outbox row per alert channel. The alert dispatcher claims due rows
+   with `FOR UPDATE SKIP LOCKED`, sends outside the transaction and retries with back-off.
 5. The worker emits `NOTIFY pulse_events`. The API listens and pushes updates to clients over SignalR.
 6. A nightly rollup aggregates raw results into hourly and daily summaries and drops raw partitions past the
    retention window.
 
-## What exists today (v0.3.0)
+## What exists today (v0.4.0)
 
 - The solution structure and project references above.
 - API: structured JSON logging, correlation ids (`X-Correlation-Id`), `/health/live`, `/health/ready` (checks
@@ -67,13 +67,18 @@ Infrastructure.
 - Check engine (`Pulse.Worker`): claiming scheduler (`FOR UPDATE SKIP LOCKED`), bounded channel, a pool of HTTP
   runners with connect-time SSRF protection, and a recorder that stores the result and the state change in one
   save. A maintenance service keeps future partitions created.
+- Incidents: opened and resolved by the incident workflow in the recorder's transaction, with a timeline,
+  acknowledgement, notes and manual incidents (`Pulse.Application/Incidents`).
+- Alerts: channels (email, Discord, Slack, signed webhook) whose settings are encrypted with Data Protection,
+  a delivery per channel and incident change, and the outbox dispatcher in the worker
+  (`Pulse.Infrastructure/Alerts`).
+- Dashboard summary: counts, uptime and the response series, computed in the database.
 - Live updates: the recorder `NOTIFY`s, each API instance `LISTEN`s and pushes to a SignalR group per team
   (`/hubs/live`); the web app patches its cache from the events and falls back to slow polling.
 - Web: design system, logo, app shell, real sign in, team management and monitors, and a seeded demo workspace.
 - Docker Compose and the CI/CD workflows.
 
-Steps 1, 2 and 5 of the flow above are real. Incidents, the outbox and alerts (3 and 4) arrive in M3 and the
-rollups (6) in M5. Today a monitor's state changes in the same save that records the result.
+Steps 1 to 5 of the flow above are real. The rollups (6) arrive in M5.
 
 ## Frontend
 
@@ -85,6 +90,9 @@ rollups (6) in M5. Today a monitor's state changes in the same save that records
 - Monitors: `data/monitors.ts` serves the Monitors screens from the API for a real account and from the
   simulation for the demo, both as the same `MonitorView`. `live/` opens the SignalR connection (lazy) and
   patches the TanStack Query cache from events, in a pure function that is unit tested.
+- Incidents and alerts: `data/incidents.ts` and `data/alerts.ts` follow the same pattern (real accounts read the
+  API, the demo reads the simulation, screens render one view type). Incident events refresh the lists and the
+  dashboard counts.
 - Demo: `data/queries.ts` is the seam to the API for the screens that are not built yet. Until a feature has a real endpoint, real accounts see a
   placeholder (`PendingFeature`) and only the demo reads seeded data.
 - Logo: `web/src/assets/logo-paths.ts` holds the traced path data used by the `Logo` and `LogoMark` components.

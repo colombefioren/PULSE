@@ -3,6 +3,28 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
+## [0.4.0] - 2026-11-08
+
+Incidents and alerts (milestone M3).
+
+### Added
+- Incidents that open when a monitor goes Down and resolve when it comes back Up, with a timeline of what the
+  monitor saw, acknowledgement, internal notes and the alerts that were sent.
+- Manual incidents with a severity and public status updates (Investigating, Identified, Monitoring, Resolved).
+- Alert channels: email, Slack, Discord and a generic webhook signed with HMAC-SHA256 (`X-Pulse-Signature`),
+  chosen per monitor, with a "Send test alert" button, delivery history and webhook secret rotation.
+- An outbox and dispatcher in the worker: alerts are staged in the same transaction as the check result,
+  sent at least once, and retried after 1, 5, 15 and 60 minutes before being marked failed.
+- Channel settings encrypted at rest; webhook addresses are never shown after they are saved.
+- A real dashboard: monitor counts, open incidents, uptime for 24 hours, 7 and 30 days and a team-wide response
+  time chart, updated live.
+- Incidents list and detail screens, an Alerts screen, alert channel choices in the monitor form and an
+  Incidents tab on each monitor.
+
+### Changed
+- `/dashboard`, `/incidents` and `/alerts` show real data for signed-in accounts instead of a placeholder.
+- Outgoing webhook requests share the connect-time address guard used by the check engine.
+
 ## [0.3.0] - 2026-11-08
 
 Monitors and the check engine (milestone M2).

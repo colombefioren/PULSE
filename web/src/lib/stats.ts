@@ -82,3 +82,9 @@ export function formatDuration(totalSeconds: number): string {
 export function formatMs(ms: number | null): string {
   return ms === null ? '-' : `${Math.round(ms)} ms`
 }
+
+/** 100%, 99.98%, 87.3%: two decimals once the value is in the nines, where they matter. */
+export function formatUptime(value: number): string {
+  if (value >= 100) return '100%'
+  return `${value.toFixed(value >= 99 ? 2 : 1)}%`
+}

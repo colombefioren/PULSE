@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { formatUptime } from '@/lib/stats'
 
 interface RingGaugeProps {
   /** 0 to 100. */
@@ -64,7 +65,7 @@ export function RingGauge({
         className="mono absolute inset-0 flex items-center justify-center text-lg font-semibold"
         style={{ color: textColor }}
       >
-        {clamped >= 99.95 ? '100' : clamped.toFixed(1)}%
+        {formatUptime(clamped)}
       </span>
     </div>
   )

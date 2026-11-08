@@ -27,9 +27,12 @@ describe('RingGauge', () => {
     expect(screen.getByRole('img', { name: 'Uptime 30d: 100 percent' })).toBeInTheDocument()
   })
 
-  it('shows the value with one decimal below 100', () => {
-    render(<RingGauge value={99.37} label="Uptime" />)
-    expect(screen.getByText('99.4%')).toBeInTheDocument()
+  it('shows two decimals in the nines and one below', () => {
+    const { rerender } = render(<RingGauge value={99.37} label="Uptime" />)
+    expect(screen.getByText('99.37%')).toBeInTheDocument()
+
+    rerender(<RingGauge value={87.25} label="Uptime" />)
+    expect(screen.getByText('87.3%')).toBeInTheDocument()
   })
 })
 

@@ -671,6 +671,34 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                     b.ToTable("monitors", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Domain.Monitors.MonitorDailyStat", b =>
+                {
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("monitor_id");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int?>("AvgMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("avg_ms");
+
+                    b.Property<int>("Checks")
+                        .HasColumnType("integer")
+                        .HasColumnName("checks");
+
+                    b.Property<int>("Successes")
+                        .HasColumnType("integer")
+                        .HasColumnName("successes");
+
+                    b.HasKey("MonitorId", "Day")
+                        .HasName("pk_monitor_daily_stats");
+
+                    b.ToTable("monitor_daily_stats", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Domain.Organizations.Invite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -795,6 +823,204 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_organizations_slug");
 
                     b.ToTable("organizations", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.ComponentMonitor", b =>
+                {
+                    b.Property<Guid>("ComponentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("component_id");
+
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("monitor_id");
+
+                    b.HasKey("ComponentId", "MonitorId")
+                        .HasName("pk_component_monitors");
+
+                    b.HasIndex("MonitorId")
+                        .HasDatabaseName("ix_component_monitors_monitor_id");
+
+                    b.ToTable("component_monitors", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.IncidentComponent", b =>
+                {
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<Guid>("ComponentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("component_id");
+
+                    b.HasKey("IncidentId", "ComponentId")
+                        .HasName("pk_incident_components");
+
+                    b.HasIndex("ComponentId")
+                        .HasDatabaseName("ix_incident_components_component_id");
+
+                    b.ToTable("incident_components", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.StatusComponent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("GroupName")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("group_name");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<Guid>("StatusPageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("status_page_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_status_components");
+
+                    b.HasIndex("StatusPageId", "SortOrder")
+                        .HasDatabaseName("ix_status_components_status_page_id_sort_order");
+
+                    b.ToTable("status_components", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.StatusPage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccentColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("accent_color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Footer")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("footer");
+
+                    b.Property<string>("LogoContentType")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("logo_content_type");
+
+                    b.Property<byte[]>("LogoData")
+                        .HasColumnType("bytea")
+                        .HasColumnName("logo_data");
+
+                    b.Property<int>("LogoVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("logo_version");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<bool>("ShowResponseTimes")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_response_times");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_status_pages");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_status_pages_organization_id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_status_pages_slug");
+
+                    b.ToTable("status_pages", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.Subscriber", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ConfirmToken")
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("confirm_token");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("confirmed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<Guid>("StatusPageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("status_page_id");
+
+                    b.Property<string>("UnsubscribeToken")
+                        .IsRequired()
+                        .HasMaxLength(48)
+                        .HasColumnType("character varying(48)")
+                        .HasColumnName("unsubscribe_token");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscribers");
+
+                    b.HasIndex("ConfirmToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscribers_confirm_token")
+                        .HasFilter("confirm_token IS NOT NULL");
+
+                    b.HasIndex("UnsubscribeToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscribers_unsubscribe_token");
+
+                    b.HasIndex("StatusPageId", "Email")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscribers_status_page_id_email");
+
+                    b.ToTable("subscribers", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Infrastructure.Identity.ApplicationUser", b =>
@@ -1030,6 +1256,16 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_monitors_organizations_organization_id");
                 });
 
+            modelBuilder.Entity("Pulse.Domain.Monitors.MonitorDailyStat", b =>
+                {
+                    b.HasOne("Pulse.Domain.Monitors.HttpMonitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitor_daily_stats_monitors_monitor_id");
+                });
+
             modelBuilder.Entity("Pulse.Domain.Organizations.Invite", b =>
                 {
                     b.HasOne("Pulse.Domain.Organizations.Organization", null)
@@ -1055,6 +1291,70 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_memberships_users_user_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.ComponentMonitor", b =>
+                {
+                    b.HasOne("Pulse.Domain.StatusPages.StatusComponent", null)
+                        .WithMany()
+                        .HasForeignKey("ComponentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_component_monitors_status_components_component_id");
+
+                    b.HasOne("Pulse.Domain.Monitors.HttpMonitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_component_monitors_monitors_monitor_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.IncidentComponent", b =>
+                {
+                    b.HasOne("Pulse.Domain.StatusPages.StatusComponent", null)
+                        .WithMany()
+                        .HasForeignKey("ComponentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_components_status_components_component_id");
+
+                    b.HasOne("Pulse.Domain.Incidents.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_components_incidents_incident_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.StatusComponent", b =>
+                {
+                    b.HasOne("Pulse.Domain.StatusPages.StatusPage", null)
+                        .WithMany()
+                        .HasForeignKey("StatusPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_status_components_status_pages_status_page_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.StatusPage", b =>
+                {
+                    b.HasOne("Pulse.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_status_pages_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.StatusPages.Subscriber", b =>
+                {
+                    b.HasOne("Pulse.Domain.StatusPages.StatusPage", null)
+                        .WithMany()
+                        .HasForeignKey("StatusPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscribers_status_pages_status_page_id");
                 });
 #pragma warning restore 612, 618
         }

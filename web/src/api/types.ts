@@ -154,10 +154,19 @@ export interface ApiIncidentUpdate {
   createdAt: string
 }
 
+/** A status page component an incident is shown on. */
+export interface ApiAffectedComponent {
+  id: string
+  name: string
+  statusPageId: string
+  statusPageTitle: string
+}
+
 export interface ApiIncidentDetail {
   incident: ApiIncident
   updates: ApiIncidentUpdate[]
   alerts: ApiDelivery[]
+  components: ApiAffectedComponent[]
 }
 
 export interface ApiIncidentPage {
@@ -171,6 +180,8 @@ export interface ManualIncidentInput {
   status: ApiIncidentStatus
   message: string
   monitorId?: string | null
+  /** Status page components the incident is shown on. */
+  componentIds?: string[]
 }
 
 export interface ApiSummary {
@@ -237,4 +248,90 @@ export interface AlertChannelInput {
 export interface ApiDeliveryPage {
   items: ApiDelivery[]
   nextBefore: string | null
+}
+
+/** What a person sets on a status page. A blank accent means the default. */
+export interface StatusPageInput {
+  slug: string
+  title: string
+  accentColor: string | null
+  footer: string | null
+  showResponseTimes: boolean
+}
+
+export interface ComponentInput {
+  name: string
+  groupName: string | null
+  monitorIds: string[]
+}
+
+export interface ApiStatusComponent {
+  id: string
+  name: string
+  groupName: string | null
+  sortOrder: number
+  monitorIds: string[]
+}
+
+export interface ApiStatusPage {
+  id: string
+  organizationId: string
+  slug: string
+  title: string
+  accentColor: string
+  footer: string
+  showResponseTimes: boolean
+  logoUrl: string | null
+  subscriberCount: number
+  components: ApiStatusComponent[]
+  createdAt: string
+}
+
+export type ApiComponentStatus = 'up' | 'degraded' | 'down' | 'maintenance'
+
+export interface ApiPublicDay {
+  date: string
+  uptimePct: number | null
+  downtimeSeconds: number
+  incidents: number
+}
+
+export interface ApiPublicComponent {
+  id: string
+  name: string
+  group: string | null
+  status: ApiComponentStatus
+  uptime90d: number | null
+  avgResponseMs: number | null
+  days: ApiPublicDay[]
+}
+
+export interface ApiPublicUpdate {
+  status: ApiIncidentStatus
+  message: string
+  at: string
+}
+
+export interface ApiPublicIncident {
+  id: string
+  title: string
+  severity: ApiSeverity
+  status: ApiIncidentStatus
+  startedAt: string
+  resolvedAt: string | null
+  components: string[]
+  updates: ApiPublicUpdate[]
+}
+
+export interface ApiPublicStatus {
+  slug: string
+  title: string
+  logoUrl: string | null
+  accentColor: string
+  footer: string
+  showResponseTimes: boolean
+  generatedAt: string
+  components: ApiPublicComponent[]
+  activeIncidents: ApiPublicIncident[]
+  history: ApiPublicIncident[]
 }

@@ -7,6 +7,7 @@ using Pulse.Domain.Alerts;
 using Pulse.Domain.Incidents;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
+using Pulse.Domain.StatusPages;
 using Pulse.Infrastructure.Identity;
 
 namespace Pulse.Infrastructure.Persistence;
@@ -35,6 +36,18 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
     public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    public DbSet<StatusPage> StatusPages => Set<StatusPage>();
+
+    public DbSet<StatusComponent> StatusComponents => Set<StatusComponent>();
+
+    public DbSet<ComponentMonitor> ComponentMonitors => Set<ComponentMonitor>();
+
+    public DbSet<IncidentComponent> IncidentComponents => Set<IncidentComponent>();
+
+    public DbSet<Subscriber> Subscribers => Set<Subscriber>();
+
+    public DbSet<MonitorDailyStat> MonitorDailyStats => Set<MonitorDailyStat>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -210,6 +223,73 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
             message.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
             message.Property(m => m.LastError).HasMaxLength(AlertDelivery.ErrorMaxLength);
             message.HasIndex(m => m.NextAttemptAt).HasFilter("processed_at IS NULL");
+        });
+
+        builder.Entity<StatusPage>(page =>
+        {
+            page.ToTable("status_pages");
+            page.HasKey(p => p.Id);
+            page.Property(p => p.Id).ValueGeneratedNever();
+            page.Property(p => p.Slug).HasMaxLength(StatusPage.SlugMaxLength).IsRequired();
+            page.Property(p => p.Title).HasMaxLength(StatusPage.TitleMaxLength).IsRequired();
+            page.Property(p => p.AccentColor).HasMaxLength(7).IsRequired();
+            page.Property(p => p.Footer).HasMaxLength(StatusPage.FooterMaxLength).IsRequired();
+            page.Property(p => p.LogoContentType).HasMaxLength(24);
+            page.Ignore(p => p.HasLogo);
+            page.HasIndex(p => p.Slug).IsUnique();
+            page.HasIndex(p => p.OrganizationId);
+            page.HasOne<Organization>().WithMany().HasForeignKey(p => p.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<StatusComponent>(component =>
+        {
+            component.ToTable("status_components");
+            component.HasKey(c => c.Id);
+            component.Property(c => c.Id).ValueGeneratedNever();
+            component.Property(c => c.Name).HasMaxLength(StatusComponent.NameMaxLength).IsRequired();
+            component.Property(c => c.GroupName).HasMaxLength(StatusComponent.GroupMaxLength);
+            component.HasIndex(c => new { c.StatusPageId, c.SortOrder });
+            component.HasOne<StatusPage>().WithMany().HasForeignKey(c => c.StatusPageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ComponentMonitor>(link =>
+        {
+            link.ToTable("component_monitors");
+            link.HasKey(l => new { l.ComponentId, l.MonitorId });
+            link.HasIndex(l => l.MonitorId);
+            link.HasOne<StatusComponent>().WithMany().HasForeignKey(l => l.ComponentId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<HttpMonitor>().WithMany().HasForeignKey(l => l.MonitorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<IncidentComponent>(link =>
+        {
+            link.ToTable("incident_components");
+            link.HasKey(l => new { l.IncidentId, l.ComponentId });
+            link.HasIndex(l => l.ComponentId);
+            link.HasOne<Incident>().WithMany().HasForeignKey(l => l.IncidentId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<StatusComponent>().WithMany().HasForeignKey(l => l.ComponentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Subscriber>(subscriber =>
+        {
+            subscriber.ToTable("subscribers");
+            subscriber.HasKey(s => s.Id);
+            subscriber.Property(s => s.Id).ValueGeneratedNever();
+            subscriber.Property(s => s.Email).HasMaxLength(254).IsRequired();
+            subscriber.Property(s => s.ConfirmToken).HasMaxLength(48);
+            subscriber.Property(s => s.UnsubscribeToken).HasMaxLength(48).IsRequired();
+            subscriber.Ignore(s => s.IsConfirmed);
+            subscriber.HasIndex(s => new { s.StatusPageId, s.Email }).IsUnique();
+            subscriber.HasIndex(s => s.UnsubscribeToken).IsUnique();
+            subscriber.HasIndex(s => s.ConfirmToken).IsUnique().HasFilter("confirm_token IS NOT NULL");
+            subscriber.HasOne<StatusPage>().WithMany().HasForeignKey(s => s.StatusPageId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MonitorDailyStat>(stat =>
+        {
+            stat.ToTable("monitor_daily_stats");
+            stat.HasKey(s => new { s.MonitorId, s.Day });
+            stat.HasOne<HttpMonitor>().WithMany().HasForeignKey(s => s.MonitorId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<DataProtectionKey>().ToTable("data_protection_keys");

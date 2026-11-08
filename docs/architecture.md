@@ -49,10 +49,17 @@ Infrastructure.
 4. The same save stages one delivery and one outbox row per alert channel. The alert dispatcher claims due rows
    with `FOR UPDATE SKIP LOCKED`, sends outside the transaction and retries with back-off.
 5. The worker emits `NOTIFY pulse_events`. The API listens and pushes updates to clients over SignalR.
-6. A nightly rollup aggregates raw results into hourly and daily summaries and drops raw partitions past the
-   retention window.
+6. A rollup job in the worker sums raw results into one row per monitor per UTC day (yesterday and today every
+   ten minutes, a 35 day backfill at start). Hourly rollups and dropping old raw partitions arrive in M5.
+7. A visitor of a public status page asks the API for `/api/public/status/{slug}`. The API builds the page from
+   the database (rollups for older days, raw results for yesterday and today), keeps it in memory for 30 seconds
+   and drops the copy when a live event says something changed. Open pages learn that through the anonymous
+   `/hubs/status` hub, which only says "changed" and never carries data.
+8. An incident change on a page's component stages one `subscriber.notify` outbox row per confirmed subscriber in
+   the same save. The dispatcher sends each as an email built from the database at send time, so someone who
+   unsubscribed in between gets nothing.
 
-## What exists today (v0.4.0)
+## What exists today (v0.5.0)
 
 - The solution structure and project references above.
 - API: structured JSON logging, correlation ids (`X-Correlation-Id`), `/health/live`, `/health/ready` (checks
@@ -76,6 +83,10 @@ Infrastructure.
 - Live updates: the recorder `NOTIFY`s, each API instance `LISTEN`s and pushes to a SignalR group per team
   (`/hubs/live`); the web app patches its cache from the events and falls back to slow polling.
 - Web: design system, logo, app shell, real sign in, team management and monitors, and a seeded demo workspace.
+- Status pages: pages, components and a logo stored in the database (`Pulse.Application/StatusPages`), the
+  public page assembled by `PublicStatusService`, `StatusCache`, the anonymous `StatusHub`, public endpoints with
+  per-address rate limits, double opt-in subscribers and the subscriber mailer.
+- Daily rollups (`monitor_daily_stats`) written by the worker.
 - Docker Compose and the CI/CD workflows.
 
 Steps 1 to 5 of the flow above are real. The rollups (6) arrive in M5.

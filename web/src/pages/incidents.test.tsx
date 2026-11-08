@@ -55,6 +55,7 @@ const detail = (over: Partial<ApiIncident> = {}, alerts: ApiDelivery[] = [delive
     { id: 'u-1', kind: 'Opened', status: 'Investigating', message: '3 failed checks in a row. Last error: received 503', author: null, createdAt: '2026-11-08T10:00:00Z' },
   ],
   alerts,
+  components: [],
 })
 
 const channel = (over: Partial<ApiAlertChannel> = {}): ApiAlertChannel => ({

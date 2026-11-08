@@ -10,7 +10,8 @@ public sealed record ManualIncidentInput(
     IncidentSeverity Severity,
     IncidentStatus Status = IncidentStatus.Investigating,
     string Message = "",
-    Guid? MonitorId = null);
+    Guid? MonitorId = null,
+    Guid[]? ComponentIds = null);
 
 public sealed record IncidentEditInput(string Title, IncidentSeverity Severity);
 
@@ -42,7 +43,14 @@ public sealed record IncidentUpdateDto(
     string? Author,
     DateTimeOffset CreatedAt);
 
-public sealed record IncidentDetailDto(IncidentDto Incident, IReadOnlyList<IncidentUpdateDto> Updates, IReadOnlyList<DeliveryDto> Alerts);
+/// <summary>A status page component a manual incident affects.</summary>
+public sealed record AffectedComponentDto(Guid Id, string Name, Guid StatusPageId, string StatusPageTitle);
+
+public sealed record IncidentDetailDto(
+    IncidentDto Incident,
+    IReadOnlyList<IncidentUpdateDto> Updates,
+    IReadOnlyList<DeliveryDto> Alerts,
+    IReadOnlyList<AffectedComponentDto> Components);
 
 public sealed record IncidentPageDto(IReadOnlyList<IncidentDto> Items, DateTimeOffset? NextBefore);
 

@@ -308,3 +308,64 @@ message. Viewers read incidents and channels; Owners and Admins write.
 `GET /api/orgs/{id}/summary` returns the counts, open incidents and uptime for 24 hours, 7 and 30 days, all
 aggregated in PostgreSQL, and `/series` returns the response-time series. Incident and status events from the
 socket invalidate them, with a one minute poll as a safety net.
+
+## M4: status pages
+
+### The public page is built, not stored
+`PublicStatusService.GetAsync` assembles the page on request: components and their monitors, the last 90 days
+of uptime, and the relevant incidents. Days before yesterday come from `monitor_daily_stats`; yesterday and today
+come from the raw `check_results`, so the newest bars are right whether or not the rollup job has run. A
+day's uptime is the lower of the share of passing checks and 100 minus the share of the day an incident was open,
+so a manual outage the checks never saw still marks the bar. The 90 day figure is the mean of the days that have
+data, and a day without checks shows grey rather than a false 100 percent.
+
+### Monitor incidents are rewritten for the public
+Anything a monitor knows is internal: its name, the failing address, the last error. The page shows "Issue
+affecting Checkout" instead, with a fixed sentence for the opening and the resolution. Notes and acknowledgements
+are never shown. A manual incident was written for customers, so it goes out as typed. This is enforced in one
+place (`PublicIncidentText`) and tested by searching the whole response for the secrets.
+
+### Component status
+Down means every active monitor is down, degraded means some are, maintenance means every monitor behind it is
+paused (or an open Maintenance incident), up is the rest. A monitor that has not been checked yet counts as up
+rather than alarming a customer. An open manual MajorOutage marks the component down; PartialOutage and Degraded
+mark it degraded. Maintenance incidents do not count as downtime.
+
+### Cached for 30 seconds, evicted on change
+Public traffic can be a lot larger than the team's own, so the page is cached in memory per address
+(`StatusPage:CacheSeconds`, 0 turns it off) with a per-address lock so a burst builds it once. A miss is
+remembered for 10 seconds so a bad address cannot be used to hit the database. Every API instance listens to
+`pulse_events` anyway, so a status or incident event drops that team's cached pages at once. The browser is told
+`Cache-Control: public, max-age=30`.
+
+### A hub that only says "changed"
+`/hubs/status` needs no sign-in, so it must never carry data. A client names a page, joins its group and receives
+`StatusChanged`; it then fetches the (cached) public page like any visitor. A socket that drops falls back to a
+one minute poll.
+
+### Public endpoints
+No session, so no antiforgery token: `/api/public` is exempt from the CSRF check and protected by rate limits
+instead (120 reads and 6 writes per minute per address). Subscribe always answers 202 whether or not the
+address is already subscribed, so the form cannot reveal who follows a page. Confirm and unsubscribe links redirect
+to the site with `?subscription=confirmed|removed`, or to `/subscription/invalid` for an unknown or used link.
+
+### Double opt-in and one-click unsubscribe
+An address counts only after the link in the first email is used, and that link works once. Every later email
+has an unsubscribe link and `List-Unsubscribe` / `List-Unsubscribe-Post` headers, so Gmail and Apple Mail can
+unsubscribe without opening anything; the POST is idempotent. Mail goes through the same outbox as alerts and is
+built from the database at send time, so anyone who left in between is skipped. The cap is 5000 subscribers a page.
+
+### Logos live in the database
+A logo is at most 256 KB, so a table column is simpler than object storage and is backed up with everything else.
+Only PNG, JPEG and WebP are accepted, the first bytes must match the claimed type, and SVG is refused because it
+can carry script and the image is served from our own origin. The address carries a version so browsers can
+cache it for a year and still see a replacement at once.
+
+### Addresses
+3 to 40 characters of lower case letters, digits and hyphens, not starting or ending with a hyphen, unique across
+all teams, and not a word the app uses (`api`, `admin`, `status`, `pulse` and so on). A team has up to 5 pages and a
+page up to 30 components.
+
+### Accent colour
+The accent paints a stripe and the subscribe button, never body text. The button text is black or white, whichever
+contrasts better, and the editor says so when neither reaches 4.5:1 for the chosen colour.

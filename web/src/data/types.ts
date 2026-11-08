@@ -40,6 +40,8 @@ export interface Incident {
   resolvedAt: number | null
   isManual: boolean
   updates: IncidentUpdate[]
+  /** Names of the status page components it affects. Only set on the public page. */
+  affects?: string[]
 }
 
 export interface DayUptime {
@@ -56,7 +58,10 @@ export interface StatusComponent {
   name: string
   group: string
   status: 'up' | 'degraded' | 'down' | 'maintenance'
-  uptime90d: number
+  /** Null when there is no data yet. */
+  uptime90d: number | null
+  /** Average response time over the last day, when the page shows response times. */
+  avgResponseMs?: number | null
   days: DayUptime[]
 }
 
@@ -67,6 +72,10 @@ export interface StatusPage {
   accent: string
   footer: string
   showResponseTimes: boolean
+  /** A team's own logo, served by the API. The simulated page has none. */
+  logoUrl?: string | null
+  /** True for a real page. The simulated demo page keeps its drawn response chart and a pretend subscribe form. */
+  live?: boolean
   components: StatusComponent[]
   activeIncidents: Incident[]
   history: Incident[]

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { mockApi, problem } from '@/test/mockApi'
 import { renderAt } from '@/test/render'
 
 describe('Dashboard', () => {
@@ -156,6 +157,7 @@ describe('Public status page', () => {
   })
 
   it('says so plainly for an unknown slug', async () => {
+    mockApi({ 'GET /api/public/status/nothing-here': { status: 404, body: problem('status_page_not_found', 'That status page does not exist.') } })
     renderAt('/status/nothing-here')
 
     expect(await screen.findByRole('heading', { name: 'No status page here' })).toBeInTheDocument()

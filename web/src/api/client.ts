@@ -57,15 +57,30 @@ async function toError(response: Response): Promise<ApiError> {
   )
 }
 
-async function send<T>(method: string, path: string, body: unknown, retried = false): Promise<T> {
-  const unsafe = method !== 'GET'
+/** What a request carries. `file` is sent as is, with its own content type; anything else is sent as JSON. */
+interface Payload {
+  json?: unknown
+  file?: Blob
+  /** Public endpoints are open to visitors without a session, so they take no antiforgery token. */
+  anonymous?: boolean
+}
+
+async function send<T>(method: string, path: string, payload: Payload, retried = false): Promise<T> {
+  const unsafe = method !== 'GET' && !payload.anonymous
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  let body: BodyInit | undefined
+  if (payload.file) {
+    headers['Content-Type'] = payload.file.type
+    body = payload.file
+  } else if (payload.json !== undefined) {
+    headers['Content-Type'] = 'application/json'
+    body = JSON.stringify(payload.json)
+  }
   if (unsafe) headers['X-XSRF-TOKEN'] = await ensureCsrf()
 
   let response: Response
   try {
-    response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    response = await fetch(path, { method, headers, body })
   } catch {
     throw new ApiError(0, 'network', 'Could not reach the server. Check your connection and try again.')
   }
@@ -75,7 +90,7 @@ async function send<T>(method: string, path: string, body: unknown, retried = fa
     // A stale token (after a sign-in, or a server restart) is fixed by fetching a new one once.
     if (error.code === 'csrf_invalid' && !retried) {
       resetCsrf()
-      return send<T>(method, path, body, true)
+      return send<T>(method, path, payload, true)
     }
     throw error
   }
@@ -86,8 +101,13 @@ async function send<T>(method: string, path: string, body: unknown, retried = fa
 }
 
 export const api = {
-  get: <T>(path: string) => send<T>('GET', path, undefined),
-  post: <T = void>(path: string, body?: unknown) => send<T>('POST', path, body ?? {}),
-  patch: <T = void>(path: string, body?: unknown) => send<T>('PATCH', path, body ?? {}),
-  delete: (path: string) => send<void>('DELETE', path, undefined),
+  get: <T>(path: string) => send<T>('GET', path, {}),
+  post: <T = void>(path: string, body?: unknown) => send<T>('POST', path, { json: body ?? {} }),
+  put: <T = void>(path: string, body?: unknown) => send<T>('PUT', path, { json: body ?? {} }),
+  patch: <T = void>(path: string, body?: unknown) => send<T>('PATCH', path, { json: body ?? {} }),
+  delete: <T = void>(path: string) => send<T>('DELETE', path, {}),
+  /** Uploads a file as the request body, for example a logo. */
+  putFile: <T = void>(path: string, file: Blob) => send<T>('PUT', path, { file }),
+  /** A POST from a visitor of a public page: no session, no antiforgery token. */
+  postPublic: <T = void>(path: string, body?: unknown) => send<T>('POST', path, { json: body ?? {}, anonymous: true }),
 }

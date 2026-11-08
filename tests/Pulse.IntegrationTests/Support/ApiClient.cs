@@ -32,7 +32,19 @@ public sealed class ApiClient(HttpClient http)
 
     public Task<HttpResponseMessage> Delete(string path) => Send(HttpMethod.Delete, path, null);
 
-    /// <summary>Sends without the security token, to prove the server turns it away.</summary>
+    public Task<HttpResponseMessage> Put(string path, object? body = null) => Send(HttpMethod.Put, path, body);
+
+    /// <summary>Uploads a file as the request body, the way the logo upload does.</summary>
+    public async Task<HttpResponseMessage> PutFile(string path, byte[] bytes, string contentType)
+    {
+        var csrf = await http.GetFromJsonAsync<JsonElement>("/api/auth/csrf");
+        using var request = new HttpRequestMessage(HttpMethod.Put, path) { Content = new ByteArrayContent(bytes) };
+        request.Headers.Add("X-XSRF-TOKEN", csrf.GetProperty("token").GetString());
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        return await http.SendAsync(request);
+    }
+
+    /// <summary>Sends without the security token, to prove the server turns it away (and what a visitor of a public page sends).</summary>
     public Task<HttpResponseMessage> PostWithoutToken(string path, object? body = null) =>
         http.PostAsJsonAsync(path, body ?? new { }, Json);
 

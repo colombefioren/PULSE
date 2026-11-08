@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Pulse.Application.Abstractions;
 using Pulse.Application.Alerts;
 using Pulse.Application.Common;
+using Pulse.Application.StatusPages;
 using Pulse.Domain.Alerts;
 using Pulse.Domain.Incidents;
 using Pulse.Domain.Monitors;
@@ -18,7 +19,7 @@ public sealed record IncidentChange(string Type, Incident Incident);
 /// message) per channel the monitor uses. The caller saves everything in one transaction, so a state change either
 /// has its incident and alerts or has none of them.
 /// </summary>
-public sealed class IncidentWorkflow(IAppDbContext db, IOptions<AppOptions> options)
+public sealed class IncidentWorkflow(IAppDbContext db, SubscriberNotifier subscribers, IOptions<AppOptions> options)
 {
     /// <summary>Returns what changed, or null when the state change does not concern incidents.</summary>
     public async Task<IncidentChange?> ApplyAsync(HttpMonitor monitor, StateChange change, DateTimeOffset now, CancellationToken cancellationToken)
@@ -45,7 +46,9 @@ public sealed class IncidentWorkflow(IAppDbContext db, IOptions<AppOptions> opti
             return null;
         }
 
-        db.IncidentUpdates.Add(incident.Resolve(reason, now));
+        var closing = incident.Resolve(reason, now);
+        db.IncidentUpdates.Add(closing);
+        await subscribers.StageAsync(incident, closing, null, now, cancellationToken);
         return new IncidentChange("IncidentResolved", incident);
     }
 
@@ -60,6 +63,7 @@ public sealed class IncidentWorkflow(IAppDbContext db, IOptions<AppOptions> opti
         db.Incidents.Add(incident);
         db.IncidentUpdates.Add(opening);
 
+        await subscribers.StageAsync(incident, opening, null, now, cancellationToken);
         await PlanAlertsAsync(monitor, incident, AlertKind.IncidentOpened, monitor.LastErrorMessage, null, now, cancellationToken);
         return new IncidentChange("IncidentOpened", incident);
     }
@@ -72,7 +76,9 @@ public sealed class IncidentWorkflow(IAppDbContext db, IOptions<AppOptions> opti
             return null;
         }
 
-        db.IncidentUpdates.Add(incident.Resolve($"{monitor.Name} is back up.", now));
+        var recovery = incident.Resolve($"{monitor.Name} is back up.", now);
+        db.IncidentUpdates.Add(recovery);
+        await subscribers.StageAsync(incident, recovery, null, now, cancellationToken);
         var duration = (int)incident.DurationAt(now).TotalSeconds;
 
         await PlanAlertsAsync(monitor, incident, AlertKind.IncidentResolved, null, duration, now, cancellationToken);

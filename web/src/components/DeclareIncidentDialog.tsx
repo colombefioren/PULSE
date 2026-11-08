@@ -5,6 +5,7 @@ import { ApiError } from '@/api/client'
 import { useDeclareIncident } from '@/data/incidents'
 import { SEVERITY_LABEL, STATUS_LABEL } from '@/data/incidentView'
 import { useMonitorList } from '@/data/monitors'
+import { useStatusPages } from '@/data/statusPages'
 import type { IncidentStatus, Severity } from '@/data/types'
 import { Notice } from './Notice'
 import { TextField } from './TextField'
@@ -26,6 +27,8 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 function DeclareForm({ onDone }: { onDone: (id?: string) => void }) {
   const declare = useDeclareIncident()
   const monitors = useMonitorList()
+  const pages = useStatusPages()
+  const [componentIds, setComponentIds] = useState<string[]>([])
   const [title, setTitle] = useState('')
   const [severity, setSeverity] = useState<Severity>('degraded')
   const [status, setStatus] = useState<IncidentStatus>('investigating')
@@ -46,7 +49,7 @@ function DeclareForm({ onDone }: { onDone: (id?: string) => void }) {
     if (Object.keys(found).length > 0) return
 
     declare.mutate(
-      { title: title.trim(), severity, status, message: message.trim(), monitorId: monitorId || null },
+      { title: title.trim(), severity, status, message: message.trim(), monitorId: monitorId || null, componentIds },
       { onSuccess: (detail) => onDone(detail.incident.id) },
     )
   }
@@ -102,6 +105,39 @@ function DeclareForm({ onDone }: { onDone: (id?: string) => void }) {
             </select>
           )}
         </Field>
+      )}
+
+      {(pages.data?.some((page) => page.components.length > 0) ?? false) && (
+        <fieldset className="field">
+          <legend className="field-label">Show on your status pages (optional)</legend>
+          <p className="field-hint mb-1">Pick the components customers will see this under. Subscribers of those pages get an email for each public update.</p>
+          <div className="flex max-h-48 flex-col gap-3 overflow-y-auto">
+            {pages.data
+              ?.filter((page) => page.components.length > 0)
+              .map((page) => (
+                <div key={page.id}>
+                  <p className="text-xs font-medium text-muted">{page.title}</p>
+                  <ul className="flex flex-col gap-1">
+                    {page.components.map((component) => (
+                      <li key={component.id}>
+                        <label className="flex min-h-9 cursor-pointer items-center gap-3 text-base">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-[var(--brand-ink)]"
+                            checked={componentIds.includes(component.id)}
+                            onChange={() =>
+                              setComponentIds((list) => (list.includes(component.id) ? list.filter((id) => id !== component.id) : [...list, component.id]))
+                            }
+                          />
+                          <span className="min-w-0 truncate">{component.name}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+          </div>
+        </fieldset>
       )}
 
       <div className="flex justify-end gap-3">

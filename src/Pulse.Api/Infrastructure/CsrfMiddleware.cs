@@ -32,6 +32,8 @@ public sealed class CsrfMiddleware(RequestDelegate next, IAntiforgery antiforger
 
     private static bool RequiresToken(HttpContext context) =>
         context.Request.Path.StartsWithSegments("/api")
+        // Visitors of a public status page have no session to forge; their endpoints are rate limited instead.
+        && !context.Request.Path.StartsWithSegments("/api/public")
         && !HttpMethods.IsGet(context.Request.Method)
         && !HttpMethods.IsHead(context.Request.Method)
         && !HttpMethods.IsOptions(context.Request.Method);

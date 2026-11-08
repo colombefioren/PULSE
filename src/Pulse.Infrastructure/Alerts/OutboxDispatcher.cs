@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pulse.Application.Abstractions;
 using Pulse.Application.Alerts;
+using Pulse.Application.StatusPages;
 using Pulse.Domain.Alerts;
 using Pulse.Infrastructure.Persistence;
 
@@ -106,6 +107,12 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopes, IAlertTranspor
             return;
         }
 
+        if (message.Type == SubscriberNotifier.OutboxType)
+        {
+            await SendToSubscriberAsync(db, scope.ServiceProvider.GetRequiredService<SubscriberMailer>(), message, cancellationToken);
+            return;
+        }
+
         var deliveryId = JsonDocument.Parse(message.Payload).RootElement.GetProperty("deliveryId").GetGuid();
         var delivery = await db.AlertDeliveries.FirstOrDefaultAsync(d => d.Id == deliveryId, cancellationToken);
         var channel = delivery is null ? null : await db.AlertChannels.FirstOrDefaultAsync(c => c.Id == delivery.ChannelId, cancellationToken);
@@ -136,6 +143,26 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopes, IAlertTranspor
 
             message.Fail(reason, clock.GetUtcNow());
             delivery.MarkAttemptFailed(reason, willRetry: message.ProcessedAt is null);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>An incident email to one status page subscriber. A subscriber who left in the meantime simply drops out.</summary>
+    private async Task SendToSubscriberAsync(PulseDbContext db, SubscriberMailer mailer, OutboxMessage message, CancellationToken cancellationToken)
+    {
+        using var payload = JsonDocument.Parse(message.Payload);
+        var root = payload.RootElement;
+
+        try
+        {
+            await mailer.SendAsync(root.GetProperty("subscriberId").GetGuid(), root.GetProperty("incidentId").GetGuid(), root.GetProperty("updateId").GetGuid(), cancellationToken);
+            message.Complete(clock.GetUtcNow());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Subscriber email {Message} failed", message.Id);
+            message.Fail("Sending the email failed.", clock.GetUtcNow());
         }
 
         await db.SaveChangesAsync(cancellationToken);

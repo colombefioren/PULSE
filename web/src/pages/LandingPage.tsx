@@ -122,7 +122,7 @@ export default function LandingPage() {
             <Link to="/login" className="btn btn-ghost text-white hover:bg-white/10">
               Sign in
             </Link>
-            <Link to="/dashboard" className="btn btn-primary">
+            <Link to="/demo" className="btn btn-primary">
               Try the demo
             </Link>
           </nav>
@@ -143,7 +143,7 @@ export default function LandingPage() {
                   keeps a public page honest while you fix it.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/dashboard" className="btn btn-primary btn-lg">
+                  <Link to="/demo" className="btn btn-primary btn-lg">
                     Try the demo <ArrowRight size={16} strokeWidth={1.5} aria-hidden />
                   </Link>
                   <Link to="/signup" className="btn btn-lg">

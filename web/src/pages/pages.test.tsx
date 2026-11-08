@@ -187,19 +187,12 @@ describe('Sign in', () => {
     await user.click(await screen.findByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText('Enter your password')).toBeInTheDocument()
-    expect(screen.queryByText('Accounts are not open yet')).not.toBeInTheDocument()
   })
 
-  it('is honest that accounts are not live yet and offers the demo', async () => {
-    const user = userEvent.setup()
+  it('still offers the demo for people who are just looking', async () => {
     renderAt('/login')
 
-    await user.type(await screen.findByLabelText('Email'), 'colombe@pulse.dev')
-    await user.type(screen.getByLabelText('Password'), 'hunter2hunter2')
-    await user.click(screen.getByRole('button', { name: 'Sign in' }))
-
-    expect(await screen.findByText('Accounts are not open yet')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Open the demo workspace/ })).toHaveAttribute('href', '/dashboard')
+    expect(await screen.findByRole('link', { name: 'Try the demo' })).toHaveAttribute('href', '/demo')
   })
 })
 

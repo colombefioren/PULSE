@@ -1,7 +1,8 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router'
+import { CommandPalette } from '@/components/CommandPalette'
 import { useLive } from '@/live/useLive'
 import { DemoBanner } from './DemoBanner'
 import { Sidebar } from './Sidebar'
@@ -22,9 +23,22 @@ export function AppShell() {
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
 
   useLive()
   useGoShortcuts(useCallback((to: string) => void navigate(to), [navigate]))
+
+  // Ctrl+K (Cmd+K on a Mac) opens the palette from anywhere, even inside a text field.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen((open) => !open)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const toggleCollapsed = () => {
     const next = !collapsed
@@ -69,7 +83,7 @@ export function AppShell() {
           </Dialog.Root>
 
           <div className="flex min-w-0 flex-1 flex-col bg-bg md:rounded-shell">
-            <Topbar onOpenNav={() => setDrawerOpen(true)} />
+            <Topbar onOpenNav={() => setDrawerOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
             <DemoBanner />
             <main id="content" tabIndex={-1} className="flex-1 px-4 pb-8 pt-2 md:px-8">
               <Outlet />
@@ -77,6 +91,7 @@ export function AppShell() {
           </div>
         </div>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </Tooltip.Provider>
   )
 }

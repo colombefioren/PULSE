@@ -1,0 +1,158 @@
+name: Release prod
+
+# A promotion is a merge commit from preprod into prod. On every promotion this workflow runs the
+# full suite, publishes the production images, and tags the release with the version at the top
+# of CHANGELOG.md. Hotfixes go to preprod first and are promoted; prod is never patched directly.
+
+on:
+  push:
+    branches: [prod]
+
+concurrency:
+  group: release-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  e2e:
+    name: End-to-end
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check whether the Playwright suite exists yet
+        id: suite
+        run: |
+          if [ -f tests/e2e/package.json ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Start the stack
+        if: steps.suite.outputs.present == 'true'
+        run: docker compose up --build --wait --detach
+
+      - uses: actions/setup-node@v4
+        if: steps.suite.outputs.present == 'true'
+        with:
+          node-version: 24
+
+      - name: Run Playwright
+        if: steps.suite.outputs.present == 'true'
+        working-directory: tests/e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - name: Upload Playwright report
+        if: ${{ always() && steps.suite.outputs.present == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          if-no-files-found: ignore
+
+  version:
+    name: Read version
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: read
+        run: |
+          version=$(grep -m1 -oP '^## \[\K[0-9]+\.[0-9]+\.[0-9]+' CHANGELOG.md || true)
+          if [ -z "$version" ]; then echo "CHANGELOG.md has no '## [x.y.z]' entry to release." >&2; exit 1; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish ${{ matrix.image }}
+    needs: [e2e, version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: .
+            dockerfile: src/Pulse.Api/Dockerfile
+          - image: worker
+            context: .
+            dockerfile: src/Pulse.Worker/Dockerfile
+          - image: web
+            context: web
+            dockerfile: web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/pulse-${{ matrix.image }}:prod
+            ghcr.io/${{ github.repository_owner }}/pulse-${{ matrix.image }}:${{ needs.version.outputs.version }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+  migrate:
+    name: Migrate production database
+    needs: publish
+    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Apply migrations
+        env:
+          ConnectionStrings__Default: ${{ secrets.PROD_DATABASE_URL }}
+        run: |
+          if ls src/Pulse.Infrastructure/Migrations/*.cs >/dev/null 2>&1; then
+            dotnet tool restore
+            dotnet ef database update --project src/Pulse.Infrastructure --startup-project src/Pulse.Api
+          else
+            echo "No migrations yet."
+          fi
+
+  tag:
+    name: Tag and release
+    needs: [publish, version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create the tag and GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          tag="v${VERSION}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+          notes=$(awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {found=1; next} found && /^## \[/ {exit} found' CHANGELOG.md)
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes "$notes"

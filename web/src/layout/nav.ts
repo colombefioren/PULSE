@@ -1,4 +1,4 @@
-import { Activity, Bell, Globe, Settings, TriangleAlert, type LucideIcon } from 'lucide-react'
+import { Activity, Bell, Globe, LayoutDashboard, Settings, TriangleAlert, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -9,6 +9,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, goKey: 'd' },
   { to: '/monitors', label: 'Monitors', icon: Activity, goKey: 'm' },
   { to: '/incidents', label: 'Incidents', icon: TriangleAlert, goKey: 'i' },
   { to: '/status-pages', label: 'Status pages', icon: Globe },

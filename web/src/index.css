@@ -16,33 +16,53 @@
 
 /*
  * Design tokens.
- * Light is the default; dark is applied with data-theme="dark" (set before first paint by the
- * script in index.html, following the system setting until the user picks a theme).
- * Dark is tuned separately from light: surfaces step up in lightness, borders are brighter than
- * the surfaces they separate, and status colors are lighter to hold contrast.
+ *
+ * Light: a dusty mauve canvas, a cream shell, mauve-tinted cards and a dark aubergine sidebar,
+ * with the brand yellow reserved for the logo, primary actions, focus and chart highlights.
+ * Dark: the same structure in deep aubergine. Dark is tuned separately: surfaces step up in
+ * lightness, borders are lighter than the surfaces they separate, and status colors are lighter.
+ * data-theme is set before first paint by the script in index.html.
  */
 :root {
   --brand: #fac303;
   --brand-hover: #e6b100;
-  --brand-ink: #0b0b0c; /* text and icons placed on a brand fill */
+  --brand-ink: #2a1a2e; /* text and icons placed on a brand fill */
 
-  --bg: #f8f7f5;
-  --surface: #ffffff;
-  --surface-2: #f2f1ee;
-  --surface-hover: #f2f1ee;
-  --border: #e4e2dd;
-  --border-strong: #cfccc5;
-  --text: #0b0b0c;
-  --text-muted: #5c5a54;
-  --text-subtle: #6b6962;
-  --overlay-shadow: 0 8px 24px rgb(11 11 12 / 12%), 0 0 0 1px rgb(11 11 12 / 6%);
-  --ring-outer: #0b0b0c;
+  --canvas: #d9c5d0;
+  --bg: #f6f0e7;
+  --surface: #eadcdf;
+  --surface-2: #dfcdd3;
+  --surface-hover: #e3d3d8;
+  --border: #d8c6cc;
+  --border-strong: #bda6b0;
+  --text: #2a1a2e;
+  --text-muted: #5f4b64;
+  --text-subtle: #6e5a73;
 
-  --status-up: #15803d;
-  --status-down: #b91c1c;
-  --status-degraded: #c2410c;
-  --status-maintenance: #1d4ed8;
-  --status-paused: #6b6962;
+  /* Sidebar and other "ink" panels stay dark in both themes so the yellow logo always has contrast. */
+  --panel: #2a1a2e;
+  --panel-2: #38253d;
+  --panel-text: #f6ecf2;
+  --panel-muted: #bfaac5;
+
+  /* Gauge cards */
+  --plum: #8a6786;
+  --plum-text: #fbf5ec;
+  --plum-track: rgb(255 255 255 / 20%);
+
+  --overlay-shadow: 0 12px 32px rgb(42 26 46 / 18%), 0 0 0 1px rgb(42 26 46 / 8%);
+  --ring-outer: #2a1a2e;
+
+  --status-up: #17693a;
+  --status-down: #b3261e;
+  --status-degraded: #b4540a;
+  --status-maintenance: #1f4fb8;
+  --status-paused: #6e5a73;
+
+  /* Same hues as the status colors, tuned to sit on dark plum and ink panels. */
+  --on-dark-up: #86efac;
+  --on-dark-down: #fca5a5;
+  --on-dark-degraded: #fdba74;
 
   color-scheme: light;
 }
@@ -50,23 +70,31 @@
 :root[data-theme="dark"] {
   --brand-hover: #ffd23d;
 
-  --bg: #0b0b0c;
-  --surface: #131314;
-  --surface-2: #1a1a1c;
-  --surface-hover: #1f1f21;
-  --border: #272729;
-  --border-strong: #38383b;
-  --text: #f3f2ef;
-  --text-muted: #a5a29b;
-  --text-subtle: #8c8982;
-  --overlay-shadow: 0 8px 24px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 8%);
+  --canvas: #100a13;
+  --bg: #1b1220;
+  --surface: #271b2d;
+  --surface-2: #31233a;
+  --surface-hover: #2d2034;
+  --border: #3a2b43;
+  --border-strong: #52405c;
+  --text: #f4ebf1;
+  --text-muted: #b7a5bc;
+  --text-subtle: #9c8aa2;
+
+  --panel: #0e0811;
+  --panel-2: #1d1223;
+
+  --plum: #4a3350;
+  --plum-track: rgb(255 255 255 / 14%);
+
+  --overlay-shadow: 0 12px 32px rgb(0 0 0 / 60%), 0 0 0 1px rgb(255 255 255 / 8%);
   --ring-outer: transparent;
 
   --status-up: #4ade80;
   --status-down: #f87171;
   --status-degraded: #fb923c;
   --status-maintenance: #60a5fa;
-  --status-paused: #8c8982;
+  --status-paused: #9c8aa2;
 
   color-scheme: dark;
 }
@@ -75,7 +103,7 @@
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  /* Type scale: 12 / 13 / 14 / 16 / 20 / 24 / 32 */
+  /* Type scale: 12 / 13 / 14 / 16 / 20 / 24 / 32, plus display sizes for hero and gauge numbers. */
   --text-xs: 12px;
   --text-xs--line-height: 16px;
   --text-sm: 13px;
@@ -90,10 +118,14 @@
   --text-xl--line-height: 32px;
   --text-2xl: 32px;
   --text-2xl--line-height: 40px;
+  --text-display: clamp(40px, 7vw, 104px);
+  --text-display--line-height: 0.92;
 
-  --radius-control: 6px;
-  --radius-card: 8px;
+  --radius-control: 12px;
+  --radius-card: 24px;
+  --radius-shell: 32px;
 
+  --color-canvas: var(--canvas);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
   --color-brand-ink: var(--brand-ink);
@@ -106,6 +138,12 @@
   --color-fg: var(--text);
   --color-muted: var(--text-muted);
   --color-subtle: var(--text-subtle);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-panel-fg: var(--panel-text);
+  --color-panel-muted: var(--panel-muted);
+  --color-plum: var(--plum);
+  --color-plum-fg: var(--plum-text);
 
   --color-up: var(--status-up);
   --color-down: var(--status-down);
@@ -118,7 +156,7 @@
 
 @layer base {
   html {
-    background: var(--bg);
+    background: var(--canvas);
     color: var(--text);
     font-family: var(--font-sans);
     font-size: 14px;
@@ -136,15 +174,14 @@
   h2,
   h3 {
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 
-  /* Visible on both themes: brand band next to the control, ink band outside it on light. */
+  /* Visible on every surface: brand band next to the control, ink band outside it on light. */
   :focus-visible {
     outline: 2px solid var(--ring-outer);
     outline-offset: 2px;
     box-shadow: 0 0 0 2px var(--brand);
-    border-radius: var(--radius-control);
   }
 
   ::selection {
@@ -177,26 +214,31 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    height: 32px;
-    padding: 0 12px;
+    height: 36px;
+    padding: 0 16px;
     border: 1px solid var(--border-strong);
-    border-radius: var(--radius-control);
-    background: var(--surface);
+    border-radius: 9999px;
+    background: transparent;
     color: var(--text);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
-    transition: background-color 120ms ease, border-color 120ms ease;
+    transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
   }
 
   .btn:hover {
     background: var(--surface-hover);
   }
 
+  .btn:active {
+    transform: translateY(1px);
+  }
+
   .btn:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.55;
   }
 
   .btn-primary {
@@ -209,25 +251,70 @@
     background: var(--brand-hover);
   }
 
+  .btn-dark {
+    border-color: transparent;
+    background: var(--panel);
+    color: var(--panel-text);
+  }
+
+  .btn-dark:hover {
+    background: var(--panel-2);
+  }
+
   .btn-ghost {
     border-color: transparent;
-    background: transparent;
   }
 
   .btn-icon {
-    width: 32px;
+    width: 36px;
     padding: 0;
   }
 
+  .btn-lg {
+    height: 44px;
+    padding: 0 24px;
+    font-size: 14px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .field-hint {
+    font-size: 12px;
+    color: var(--text-subtle);
+  }
+
+  .field-error {
+    font-size: 12px;
+    color: var(--status-down);
+  }
+
   .input {
-    height: 32px;
+    height: 44px;
     width: 100%;
-    padding: 0 10px;
+    padding: 0 16px;
     border: 1px solid var(--border-strong);
-    border-radius: var(--radius-control);
-    background: var(--surface);
+    border-radius: 14px;
+    background: var(--bg);
     color: var(--text);
     font-size: 14px;
+    transition: border-color 140ms ease;
+  }
+
+  .input:hover {
+    border-color: var(--text-subtle);
+  }
+
+  .input[aria-invalid="true"] {
+    border-color: var(--status-down);
   }
 
   .input::placeholder {
@@ -235,9 +322,14 @@
   }
 
   .card {
-    border: 1px solid var(--border);
     border-radius: var(--radius-card);
     background: var(--surface);
+  }
+
+  .card-plum {
+    border-radius: var(--radius-card);
+    background: var(--plum);
+    color: var(--plum-text);
   }
 
   .kbd {
@@ -246,7 +338,7 @@
     height: 20px;
     padding: 0 6px;
     border: 1px solid var(--border-strong);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--surface-2);
     color: var(--text-muted);
     font-family: var(--font-mono);
@@ -278,6 +370,21 @@
     background: var(--status-maintenance);
   }
 
+  /* Down monitors breathe once every two seconds; other states stay still. */
+  .status-dot[data-status="down"][data-live="true"] {
+    animation: dot-pulse 2s ease-out infinite;
+  }
+
+  @keyframes dot-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-down) 55%, transparent);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 8px transparent;
+    }
+  }
+
   /* Skeletons match the final layout; no spinners. */
   .skeleton {
     border-radius: var(--radius-control);
@@ -292,6 +399,37 @@
     }
     to {
       background-position: -200% 0;
+    }
+  }
+
+  /* A value that just changed gets one soft highlight, without moving anything. */
+  .flash {
+    animation: flash 1.2s ease-out;
+  }
+
+  @keyframes flash {
+    from {
+      background-color: color-mix(in srgb, var(--brand) 45%, transparent);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  /* Cards and rows rise in once on load. */
+  .rise {
+    animation: rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 }

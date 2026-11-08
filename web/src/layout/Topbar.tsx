@@ -18,7 +18,7 @@ export function Topbar({ onOpenNav }: TopbarProps) {
   })
 
   return (
-    <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-border bg-bg px-4 md:px-8">
+    <header className="flex h-16 items-center gap-2 px-4 md:px-8">
       <div className="md:hidden">
         <Tip label="Open navigation">
           <button type="button" className="btn btn-ghost btn-icon" onClick={onOpenNav} aria-label="Open navigation">

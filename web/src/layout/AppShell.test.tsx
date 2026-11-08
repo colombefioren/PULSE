@@ -17,13 +17,14 @@ function renderAt(path: string) {
 }
 
 describe('AppShell', () => {
-  it('lists the five sections in the sidebar and marks the current one', async () => {
+  it('lists the six sections in the sidebar and marks the current one', async () => {
     renderAt('/monitors')
 
     const nav = await screen.findByRole('navigation', { name: 'Main' })
     const links = within(nav).getAllByRole('link')
 
     expect(links.map((link) => link.textContent)).toEqual([
+      'Dashboard',
       'Monitors',
       'Incidents',
       'Status pages',
@@ -39,8 +40,8 @@ describe('AppShell', () => {
     const nav = await screen.findByRole('navigation', { name: 'Main' })
     const alerts = within(nav).getByRole('link', { name: 'Alerts' })
 
-    expect(alerts).toHaveClass('flex', 'items-center', 'bg-brand')
-    expect(within(nav).getByRole('link', { name: 'Monitors' })).not.toHaveClass('bg-brand')
+    expect(alerts).toHaveClass('flex', 'items-center', 'bg-bg')
+    expect(within(nav).getByRole('link', { name: 'Monitors' })).not.toHaveClass('bg-bg')
     expect(within(nav).getByRole('link', { name: 'Monitors' })).toHaveClass('flex', 'items-center')
   })
 

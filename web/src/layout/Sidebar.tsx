@@ -1,7 +1,8 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import { NavLink, useMatch } from 'react-router'
+import { LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Link, NavLink, useMatch } from 'react-router'
 import { Logo, LogoMark } from '@/components/Logo'
 import { Tip } from '@/components/Tip'
+import { demoSession } from '@/data/session'
 import { NAV_ITEMS, type NavItem } from './nav'
 
 interface SidebarProps {
@@ -31,9 +32,9 @@ function SidebarLink({ item: { to, label, icon: Icon, goKey }, collapsed, onNavi
         onClick={onNavigate}
         aria-label={collapsed ? label : undefined}
         className={[
-          'flex h-8 items-center gap-3 rounded-control text-sm font-medium',
-          collapsed ? 'justify-center' : 'px-2',
-          isActive ? 'bg-brand text-brand-ink' : 'text-muted hover:bg-surface-hover hover:text-fg',
+          'flex h-10 items-center gap-3 rounded-full text-sm font-medium transition-colors',
+          collapsed ? 'justify-center' : 'px-4',
+          isActive ? 'bg-bg text-fg' : 'text-panel-muted hover:bg-panel-2 hover:text-panel-fg',
         ].join(' ')}
       >
         <Icon size={16} strokeWidth={1.5} aria-hidden />
@@ -44,14 +45,33 @@ function SidebarLink({ item: { to, label, icon: Icon, goKey }, collapsed, onNavi
 }
 
 export function Sidebar({ collapsed = false, onToggleCollapsed, onNavigate }: SidebarProps) {
+  const { user, org } = demoSession
+
   return (
-    <div className="flex h-full flex-col">
-      <div className={`flex h-12 items-center border-b border-border ${collapsed ? 'justify-center' : 'px-4'}`}>
-        {collapsed ? <LogoMark height={24} animate /> : <Logo height={22} iconGap={10} />}
+    <div className="flex h-full flex-col text-panel-fg">
+      <div className={`flex h-16 items-center ${collapsed ? 'justify-center' : 'px-6'}`}>
+        {collapsed ? <LogoMark height={26} animate /> : <Logo height={24} iconGap={10} />}
       </div>
 
-      <nav aria-label="Main" className="flex-1 p-2">
-        <ul className="flex flex-col gap-0.5">
+      {!collapsed && (
+        <div className="mx-3 mb-4 flex items-center gap-3 rounded-2xl bg-panel-2 p-3">
+          <span
+            aria-hidden
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-ink"
+          >
+            {user.initials}
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate text-sm font-medium">{org.name}</span>
+            <span className="block truncate text-xs text-panel-muted">
+              {user.name} · {org.role}
+            </span>
+          </span>
+        </div>
+      )}
+
+      <nav aria-label="Main" className="flex-1 px-3">
+        <ul className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => (
             <li key={item.to}>
               <SidebarLink item={item} collapsed={collapsed} onNavigate={onNavigate} />
@@ -60,12 +80,24 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, onNavigate }: Si
         </ul>
       </nav>
 
-      {onToggleCollapsed && (
-        <div className={`border-t border-border p-2 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`flex items-center gap-1 p-3 ${collapsed ? 'flex-col' : 'justify-between'}`}>
+        <Tip label="Back to the site" side="right">
+          <Link
+            to="/"
+            onClick={onNavigate}
+            aria-label="Back to the site"
+            className="flex h-10 items-center gap-3 rounded-full px-3 text-sm text-panel-muted hover:bg-panel-2 hover:text-panel-fg"
+          >
+            <LogOut size={16} strokeWidth={1.5} aria-hidden />
+            {!collapsed && <span>Log out</span>}
+          </Link>
+        </Tip>
+
+        {onToggleCollapsed && (
           <Tip label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} side="right">
             <button
               type="button"
-              className="btn btn-ghost btn-icon"
+              className="flex size-10 items-center justify-center rounded-full text-panel-muted hover:bg-panel-2 hover:text-panel-fg"
               onClick={onToggleCollapsed}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!collapsed}
@@ -77,8 +109,8 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, onNavigate }: Si
               )}
             </button>
           </Tip>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

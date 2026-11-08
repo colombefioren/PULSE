@@ -1,18 +1,24 @@
-import { ArrowLeft, Pause, Play } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Activity, ArrowLeft, Pause, Pencil, Play, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
+import { ApiError } from '@/api/client'
 import { ResponseChart } from '@/components/charts/ResponseChart'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
+import { MonitorFormDialog } from '@/components/MonitorFormDialog'
 import { Panel } from '@/components/Panel'
 import { RangePicker } from '@/components/RangePicker'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { StatusPill } from '@/components/StatusPill'
-import { useIncidents, useMonitor, useNow, useSeries, useSetMonitorPaused } from '@/data/queries'
+import { useDeleteMonitor, useMonitorAccess, useMonitorChecks, useMonitorStats, useMonitorView, useSetPaused } from '@/data/monitors'
+import { useIncidents, useNow } from '@/data/queries'
 import type { ChartRange } from '@/data/types'
-import { formatDuration, formatMs, relativeTime, summarize } from '@/lib/stats'
-import { Activity } from 'lucide-react'
+import { formatDuration, formatMs, relativeTime } from '@/lib/stats'
 
 type Tab = 'checks' | 'incidents'
+
+const percent = (value: number | null) => (value === null ? '-' : `${value.toFixed(1)}%`)
+const millis = (value: number | null) => (value === null ? '-' : `${value} ms`)
 
 function Kpi({ label, value, index }: { label: string; value: string; index: number }) {
   return (
@@ -25,17 +31,39 @@ function Kpi({ label, value, index }: { label: string; value: string; index: num
 
 export default function MonitorDetailPage() {
   const { id = '' } = useParams()
+  const navigate = useNavigate()
   const now = useNow()
-  const monitor = useMonitor(id)
+  const { demoMode, canEdit, canPause } = useMonitorAccess()
+  const monitor = useMonitorView(id)
   const [range, setRange] = useState<ChartRange>('24h')
-  const series = useSeries(id, range)
-  const recent = useSeries(id, '1h')
+  const stats = useMonitorStats(id, range)
+  const checks = useMonitorChecks(id)
   const incidents = useIncidents()
-  const setPaused = useSetMonitorPaused()
+  const setPaused = useSetPaused()
+  const remove = useDeleteMonitor()
   const [tab, setTab] = useState<Tab>('checks')
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  const summary = useMemo(() => (series.data ? summarize(series.data) : null), [series.data])
+  const series = stats.data?.series
+  const recent = checks.data?.pages.flatMap((page) => page.items) ?? []
   const mine = (incidents.data ?? []).filter((incident) => incident.monitorId === id)
+  const tabs: Tab[] = demoMode ? ['checks', 'incidents'] : ['checks']
+
+  if (monitor.isError) {
+    return (
+      <EmptyState
+        icon={Activity}
+        title="Could not load this monitor"
+        description="Check your connection and try again."
+        action={
+          <button type="button" className="btn" onClick={() => void monitor.refetch()}>
+            Try again
+          </button>
+        }
+      />
+    )
+  }
 
   if (monitor.isPending) {
     return (
@@ -75,38 +103,59 @@ export default function MonitorDetailPage() {
             </div>
             <p className="mono mt-1 truncate text-sm text-muted">
               {m.method} {m.url} · every {m.intervalS < 60 ? `${m.intervalS}s` : `${m.intervalS / 60}m`}
-              {!paused && ` · checked ${relativeTime(m.lastCheckedAt, now)}`}
+              {!paused && m.lastCheckedAt !== null && ` · checked ${relativeTime(m.lastCheckedAt, now)}`}
             </p>
           </div>
-          <button type="button" className="btn" onClick={() => setPaused.mutate({ id: m.id, paused: !paused })}>
-            {paused ? <Play size={16} strokeWidth={1.5} aria-hidden /> : <Pause size={16} strokeWidth={1.5} aria-hidden />}
-            {paused ? 'Resume' : 'Pause'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {canPause && (
+              <button type="button" className="btn" onClick={() => setPaused.mutate({ id: m.id, paused: !paused })}>
+                {paused ? <Play size={16} strokeWidth={1.5} aria-hidden /> : <Pause size={16} strokeWidth={1.5} aria-hidden />}
+                {paused ? 'Resume' : 'Pause'}
+              </button>
+            )}
+            {canEdit && (
+              <>
+                <button type="button" className="btn" onClick={() => setEditing(true)}>
+                  <Pencil size={16} strokeWidth={1.5} aria-hidden /> Edit
+                </button>
+                <button type="button" className="btn" onClick={() => setDeleting(true)}>
+                  <Trash2 size={16} strokeWidth={1.5} aria-hidden /> Delete
+                </button>
+              </>
+            )}
+          </div>
         </header>
+        {m.status === 'down' && m.lastError && (
+          <p className="mt-3 rounded-2xl border border-down/30 bg-down/10 px-4 py-3 text-sm" role="status">
+            {m.lastError}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Kpi index={1} label="Uptime, 24h" value={`${m.uptime24h.toFixed(1)}%`} />
-        <Kpi index={2} label="Uptime, 7d" value={`${m.uptime7d.toFixed(1)}%`} />
-        <Kpi index={3} label="Uptime, 30d" value={`${m.uptime30d.toFixed(1)}%`} />
-        <Kpi index={4} label="Uptime, 90d" value={`${m.uptime90d.toFixed(1)}%`} />
-        <Kpi index={5} label={`Average, ${range}`} value={summary ? `${summary.avgMs} ms` : '-'} />
-        <Kpi index={6} label={`p95, ${range}`} value={summary ? `${summary.p95} ms` : '-'} />
+        <Kpi index={1} label="Uptime, 24h" value={percent(stats.data?.uptime24h ?? null)} />
+        <Kpi index={2} label="Uptime, 7d" value={percent(stats.data?.uptime7d ?? null)} />
+        <Kpi index={3} label="Uptime, 30d" value={percent(stats.data?.uptime30d ?? null)} />
+        <Kpi index={4} label={`Average, ${range}`} value={millis(stats.data?.avgMs ?? null)} />
+        <Kpi index={5} label={`p95, ${range}`} value={millis(stats.data?.p95 ?? null)} />
+        <Kpi index={6} label={`p99, ${range}`} value={millis(stats.data?.p99 ?? null)} />
       </div>
 
       <Panel index={7} title="Response time" action={<RangePicker value={range} onChange={setRange} label="Response time range" />}>
-        {series.data && series.data.length > 1 ? (
-          <ResponseChart series={series.data} range={range} subject={m.name} />
-        ) : series.isPending ? (
+        {series && series.length > 1 ? (
+          <ResponseChart series={series} range={range} subject={m.name} />
+        ) : stats.isPending ? (
           <div className="skeleton h-[260px]" aria-hidden />
         ) : (
-          <p className="text-base text-muted">No checks yet. A paused monitor does not run until it is resumed.</p>
+          <p className="text-base text-muted">
+            No checks yet. The first result appears within a minute; a paused monitor does not run until it is resumed.
+          </p>
         )}
       </Panel>
 
       <Panel index={8} title="Activity">
         <div role="tablist" aria-label="Activity" className="mb-4 inline-flex rounded-full bg-surface-2 p-1">
-          {(['checks', 'incidents'] as Tab[]).map((value) => (
+          {tabs.map((value) => (
             <button
               key={value}
               type="button"
@@ -122,35 +171,42 @@ export default function MonitorDetailPage() {
           ))}
         </div>
 
-        {tab === 'checks' ? (
+        {tab === 'checks' || !demoMode ? (
           <div role="tabpanel" id="panel-checks" aria-labelledby="tab-checks">
-            {(recent.data ?? []).length === 0 ? (
-              <p className="text-base text-muted">No checks to show.</p>
+            {recent.length === 0 ? (
+              <p className="text-base text-muted">{checks.isPending ? 'Loading checks…' : 'No checks to show.'}</p>
             ) : (
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-xs text-muted">
-                    <th scope="col" className="pb-2 font-medium">Time</th>
-                    <th scope="col" className="pb-2 font-medium">Result</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Response</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...(recent.data ?? [])].reverse().slice(0, 12).map((point) => (
-                    <tr key={point.t} className="border-t border-border">
-                      <td className="mono py-2">{new Date(point.t).toLocaleTimeString('en-GB')}</td>
-                      <td className="py-2">
-                        {point.ms === null ? (
-                          <span className="font-medium text-down">Timeout after 10s. The server did not respond.</span>
-                        ) : (
-                          <span className="text-up">200 OK</span>
-                        )}
-                      </td>
-                      <td className="mono py-2 text-right">{formatMs(point.ms)}</td>
+              <>
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted">
+                      <th scope="col" className="pb-2 font-medium">Time</th>
+                      <th scope="col" className="pb-2 font-medium">Result</th>
+                      <th scope="col" className="pb-2 text-right font-medium">Response</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recent.map((check) => (
+                      <tr key={check.at} className="border-t border-border">
+                        <td className="mono py-2 align-top">{new Date(check.at).toLocaleTimeString('en-GB')}</td>
+                        <td className="py-2">
+                          {check.success ? (
+                            <span className="text-up">{check.statusCode ? `${check.statusCode} OK` : 'OK'}</span>
+                          ) : (
+                            <span className="font-medium text-down">{check.message ?? 'The check failed'}</span>
+                          )}
+                        </td>
+                        <td className="mono py-2 text-right align-top">{formatMs(check.responseMs)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {checks.hasNextPage && (
+                  <button type="button" className="btn mt-4" disabled={checks.isFetchingNextPage} onClick={() => void checks.fetchNextPage()}>
+                    {checks.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         ) : (
@@ -176,6 +232,21 @@ export default function MonitorDetailPage() {
           </div>
         )}
       </Panel>
+
+      {canEdit && <MonitorFormDialog open={editing} onOpenChange={setEditing} monitor={m} />}
+      <ConfirmDialog
+        open={deleting}
+        onOpenChange={(open) => {
+          setDeleting(open)
+          if (!open) remove.reset()
+        }}
+        title={`Delete ${m.name}?`}
+        description="Its check history is deleted with it and it stops being monitored. This can't be undone."
+        confirmLabel="Delete monitor"
+        pending={remove.isPending}
+        error={remove.error instanceof ApiError ? remove.error.message : remove.isError ? 'Could not delete the monitor. Try again.' : null}
+        onConfirm={() => remove.mutate(m.id, { onSuccess: () => void navigate('/monitors', { replace: true }) })}
+      />
     </div>
   )
 }

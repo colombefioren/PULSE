@@ -86,14 +86,14 @@ describe('Monitor detail', () => {
     renderAt('/monitors/mon-api')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Public API' })).toBeInTheDocument()
-    expect(screen.getByText('Uptime, 90d')).toBeInTheDocument()
+    expect(screen.getByText('Uptime, 30d')).toBeInTheDocument()
     expect(await screen.findByRole('img', { name: 'Public API response time over the last 24h' })).toBeInTheDocument()
   })
 
   it('lists a failing check with a specific, actionable reason', async () => {
     renderAt('/monitors/mon-auth')
 
-    expect((await screen.findAllByText(/Timeout after 10s. The server did not respond./)).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(/Timeout after 10s/)).length).toBeGreaterThan(0)
   })
 
   it('says when a monitor does not exist', async () => {

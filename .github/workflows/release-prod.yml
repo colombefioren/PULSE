@@ -35,7 +35,7 @@ jobs:
         if: steps.suite.outputs.present == 'true'
         run: docker compose up --build --wait --detach
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.suite.outputs.present == 'true'
         with:
           node-version: 24

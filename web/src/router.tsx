@@ -10,14 +10,16 @@ interface PageOptions {
   crumb?: string
   /** Name of a feature whose backend is not built yet. Real accounts see a "coming" notice; the demo sees the page. */
   demoOnly?: string
+  /** Where a real account is sent instead of the "coming" notice, when another screen covers the need. */
+  redirectTo?: string
 }
 
 /** Every page is loaded on demand so the initial bundle stays small. */
-function page(load: () => Promise<{ default: ComponentType }>, { crumb, demoOnly: feature }: PageOptions = {}): RouteObject {
+function page(load: () => Promise<{ default: ComponentType }>, { crumb, demoOnly: feature, redirectTo }: PageOptions = {}): RouteObject {
   return {
     lazy: async () => {
       const Page = (await load()).default
-      return { Component: feature ? demoOnly(Page, feature) : Page }
+      return { Component: feature ? demoOnly(Page, feature, redirectTo) : Page }
     },
     handle: { crumb } satisfies RouteHandle,
   }
@@ -44,9 +46,9 @@ export const routes: RouteObject[] = [
       {
         Component: AppShell,
         children: [
-          { path: 'dashboard', ...page(() => import('@/pages/DashboardPage'), { crumb: 'Dashboard', demoOnly: 'Dashboard' }) },
-          { path: 'monitors', ...page(() => import('@/pages/MonitorsPage'), { crumb: 'Monitors', demoOnly: 'Monitors' }) },
-          { path: 'monitors/:id', ...page(() => import('@/pages/MonitorDetailPage'), { crumb: 'Monitor', demoOnly: 'Monitors' }) },
+          { path: 'dashboard', ...page(() => import('@/pages/DashboardPage'), { crumb: 'Dashboard', demoOnly: 'Dashboard', redirectTo: '/monitors' }) },
+          { path: 'monitors', ...page(() => import('@/pages/MonitorsPage'), { crumb: 'Monitors' }) },
+          { path: 'monitors/:id', ...page(() => import('@/pages/MonitorDetailPage'), { crumb: 'Monitor' }) },
           { path: 'incidents', ...page(() => import('@/pages/IncidentsPage'), { crumb: 'Incidents', demoOnly: 'Incidents' }) },
           { path: 'status-pages', ...page(() => import('@/pages/StatusPagesPage'), { crumb: 'Status pages', demoOnly: 'Status pages' }) },
           { path: 'alerts', ...page(() => import('@/pages/AlertsPage'), { crumb: 'Alerts', demoOnly: 'Alerts' }) },

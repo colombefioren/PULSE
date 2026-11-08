@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Pulse.Application.Common;
 
 namespace Pulse.Api.Infrastructure;
@@ -26,6 +27,15 @@ public sealed class AppExceptionHandler(IProblemDetailsService problems, ILogger
             case BadHttpRequestException bad:
                 problem = new ProblemDetails { Status = StatusCodes.Status400BadRequest, Title = "The request could not be read.", Detail = bad.Message };
                 problem.Extensions["code"] = "bad_request";
+                break;
+
+            case DbUpdateConcurrencyException:
+                problem = new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "This changed while you were editing it. Reload and try again.",
+                };
+                problem.Extensions["code"] = "conflict";
                 break;
 
             default:

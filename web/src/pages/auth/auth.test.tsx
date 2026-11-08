@@ -185,12 +185,19 @@ describe('Protected pages', () => {
     expect(await screen.findByRole('heading', { name: 'Monitors' })).toBeInTheDocument()
   })
 
-  it('tells a real account that monitors are still to come instead of showing demo data', async () => {
-    mockApi({ 'GET /api/auth/me': { body: ana } })
+  it('shows a real account its own monitors, never the demo ones', async () => {
+    mockApi({ 'GET /api/auth/me': { body: ana }, 'GET /api/orgs/org-acme/monitors': { body: [] } })
     renderAt('/monitors', { demo: false })
 
-    expect(await screen.findByText(/upcoming release/)).toBeInTheDocument()
-    expect(screen.queryByText('api.pulse.dev')).not.toBeInTheDocument()
+    expect(await screen.findByText('No monitors yet')).toBeInTheDocument()
+    expect(screen.queryByText('Public API')).not.toBeInTheDocument()
+  })
+
+  it('sends a real account from the dashboard, which is not built yet, to the monitors', async () => {
+    mockApi({ 'GET /api/auth/me': { body: ana }, 'GET /api/orgs/org-acme/monitors': { body: [] } })
+    const { router } = renderAt('/dashboard', { demo: false })
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/monitors'))
   })
 })
 

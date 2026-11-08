@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Pulse.Application.Abstractions;
+using Pulse.Infrastructure.Checks;
 using Pulse.Infrastructure.Email;
 using Pulse.Infrastructure.Identity;
+using Pulse.Infrastructure.Monitoring;
 using Pulse.Infrastructure.Persistence;
 
 namespace Pulse.Infrastructure;
@@ -17,8 +20,10 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 
-        services.AddDbContext<PulseDbContext>(options => options
-            .UseNpgsql(connectionString)
+        // Dynamic JSON lets the headers dictionary be stored as jsonb without a hand-written converter.
+        services.AddSingleton(_ => new NpgsqlDataSourceBuilder(connectionString).EnableDynamicJson().Build());
+        services.AddDbContext<PulseDbContext>((provider, options) => options
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>())
             .UseSnakeCaseNamingConvention());
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<PulseDbContext>());
 
@@ -48,6 +53,21 @@ public static class DependencyInjection
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.Section));
         services.AddScoped<IEmailSender, SmtpEmailSender>();
 
+        services.AddSingleton<IMonitorUrlGuard, DnsUrlGuard>();
+        services.AddScoped<IMonitorStats, MonitorStats>();
+        services.AddScoped<ILiveEvents, PostgresLiveEvents>();
+        services.AddScoped<CheckPartitions>();
+
+        return services;
+    }
+
+    /// <summary>What the worker adds on top: the HTTP checker and the engine that drives it.</summary>
+    public static IServiceCollection AddCheckEngine(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<CheckEngineOptions>(configuration.GetSection(CheckEngineOptions.Section));
+        services.AddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.AddSingleton<IHttpChecker, HttpChecker>();
+        services.AddSingleton<CheckEngine>();
         return services;
     }
 }

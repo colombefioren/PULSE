@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
 import { NAV_ITEMS } from './nav'
 
+/** "C" opens the new monitor form (the page ignores it for people who cannot add monitors). */
+export const NEW_MONITOR_PATH = '/monitors?new=1'
+
 /** Max time between G and the second key. */
 const SEQUENCE_WINDOW_MS = 1000
 
@@ -14,7 +17,7 @@ export function destinationForGoKey(key: string): string | undefined {
   return NAV_ITEMS.find((item) => item.goKey === key.toLowerCase())?.to
 }
 
-/** "G then M" opens monitors, "G then I" opens incidents. Ignored while typing in a field. */
+/** "G then M" opens monitors, "G then I" opens incidents, "C" creates a monitor. Ignored while typing in a field. */
 export function useGoShortcuts(navigate: (to: string) => void) {
   useEffect(() => {
     let armedAt = 0
@@ -36,6 +39,10 @@ export function useGoShortcuts(navigate: (to: string) => void) {
       }
 
       if (key === 'g') armedAt = event.timeStamp
+      if (key === 'c') {
+        event.preventDefault()
+        navigate(NEW_MONITOR_PATH)
+      }
     }
 
     window.addEventListener('keydown', onKeyDown)

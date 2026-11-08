@@ -18,11 +18,11 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
     {
         // "Age" counts whole hours back from `until`, so the sparkline always ends at the present moment.
         var rows = await db.Database.SqlQuery<HourRow>($"""
-            SELECT c.monitor_id AS "MonitorId",
-                   floor(extract(epoch FROM ({until} - c.checked_at)) / 3600)::int AS "Age",
-                   count(*)::bigint AS "Total",
-                   (count(*) FILTER (WHERE c.success))::bigint AS "Successes",
-                   (avg(c.response_ms) FILTER (WHERE c.success))::float8 AS "AvgMs"
+            SELECT c.monitor_id AS "monitor_id",
+                   floor(extract(epoch FROM ({until} - c.checked_at)) / 3600)::int AS "age",
+                   count(*)::bigint AS "total",
+                   (count(*) FILTER (WHERE c.success))::bigint AS "successes",
+                   (avg(c.response_ms) FILTER (WHERE c.success))::float8 AS "avg_ms"
             FROM check_results c
             JOIN monitors m ON m.id = c.monitor_id
             WHERE m.organization_id = {organizationId} AND c.checked_at >= {since} AND c.checked_at < {until}
@@ -48,12 +48,12 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
     public async Task<RangeStats> RangeAsync(Guid monitorId, DateTimeOffset since, CancellationToken cancellationToken)
     {
         var row = await db.Database.SqlQuery<RangeRow>($"""
-            SELECT count(*)::bigint AS "Total",
-                   (count(*) FILTER (WHERE success))::bigint AS "Successes",
-                   (avg(response_ms) FILTER (WHERE success))::float8 AS "AvgMs",
-                   (percentile_disc(0.50) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "P50",
-                   (percentile_disc(0.95) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "P95",
-                   (percentile_disc(0.99) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "P99"
+            SELECT count(*)::bigint AS "total",
+                   (count(*) FILTER (WHERE success))::bigint AS "successes",
+                   (avg(response_ms) FILTER (WHERE success))::float8 AS "avg_ms",
+                   (percentile_disc(0.50) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "p50",
+                   (percentile_disc(0.95) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "p95",
+                   (percentile_disc(0.99) WITHIN GROUP (ORDER BY response_ms) FILTER (WHERE success)) AS "p99"
             FROM check_results
             WHERE monitor_id = {monitorId} AND checked_at >= {since}
             """).SingleAsync(cancellationToken);
@@ -65,10 +65,10 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
     {
         var seconds = bucket.TotalSeconds;
         var rows = await db.Database.SqlQuery<SeriesRow>($"""
-            SELECT to_timestamp(floor(extract(epoch FROM checked_at) / {seconds}) * {seconds}) AS "At",
-                   (avg(response_ms) FILTER (WHERE success))::float8 AS "AvgMs",
-                   count(*)::int AS "Checks",
-                   (count(*) FILTER (WHERE NOT success))::int AS "Failures"
+            SELECT to_timestamp(floor(extract(epoch FROM checked_at) / {seconds}) * {seconds}) AS "at",
+                   (avg(response_ms) FILTER (WHERE success))::float8 AS "avg_ms",
+                   count(*)::int AS "checks",
+                   (count(*) FILTER (WHERE NOT success))::int AS "failures"
             FROM check_results
             WHERE monitor_id = {monitorId} AND checked_at >= {since}
             GROUP BY 1
@@ -82,10 +82,10 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
     {
         var seconds = bucket.TotalSeconds;
         var rows = await db.Database.SqlQuery<SeriesRow>($"""
-            SELECT to_timestamp(floor(extract(epoch FROM c.checked_at) / {seconds}) * {seconds}) AS "At",
-                   (avg(c.response_ms) FILTER (WHERE c.success))::float8 AS "AvgMs",
-                   count(*)::int AS "Checks",
-                   (count(*) FILTER (WHERE NOT c.success))::int AS "Failures"
+            SELECT to_timestamp(floor(extract(epoch FROM c.checked_at) / {seconds}) * {seconds}) AS "at",
+                   (avg(c.response_ms) FILTER (WHERE c.success))::float8 AS "avg_ms",
+                   count(*)::int AS "checks",
+                   (count(*) FILTER (WHERE NOT c.success))::int AS "failures"
             FROM check_results c
             JOIN monitors m ON m.id = c.monitor_id
             WHERE m.organization_id = {organizationId} AND c.checked_at >= {since}
@@ -99,7 +99,8 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
     private static SeriesPointDto ToPoint(SeriesRow row) =>
         new(row.At, row.AvgMs is null ? null : (int)Math.Round(row.AvgMs.Value), row.Checks, row.Failures);
 
-    // Plain classes with settable properties: SqlQuery maps columns to them by name.
+    // Plain classes with settable properties: SqlQuery maps columns to them by name, and the snake_case naming
+    // convention applies, so the SQL aliases above are snake_case too.
     private sealed class HourRow
     {
         public Guid MonitorId { get; set; }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Pulse.Application.Abstractions;
 using Pulse.Infrastructure.Email;
 using Pulse.Infrastructure.Identity;
@@ -18,8 +19,10 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
 
-        services.AddDbContext<PulseDbContext>(options => options
-            .UseNpgsql(connectionString)
+        // Dynamic JSON lets the headers dictionary be stored as jsonb without a hand-written converter.
+        services.AddSingleton(_ => new NpgsqlDataSourceBuilder(connectionString).EnableDynamicJson().Build());
+        services.AddDbContext<PulseDbContext>((provider, options) => options
+            .UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>())
             .UseSnakeCaseNamingConvention());
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<PulseDbContext>());
 

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Api.Endpoints;
 using Pulse.Api.Infrastructure;
+using Pulse.Api.Live;
 using Pulse.Application;
 using Pulse.Application.Common;
 using Pulse.Infrastructure;
@@ -39,6 +40,9 @@ try
     services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.Section));
     services.AddApplication();
     services.AddInfrastructure(builder.Configuration);
+
+    services.AddSignalR();
+    services.AddHostedService<LiveEventListener>();
 
     services.AddHealthChecks().AddDbContextCheck<PulseDbContext>(tags: ["ready"]);
 
@@ -109,6 +113,10 @@ try
 
     app.UseStatusCodePages();
     app.UseRateLimiter();
+    // A browser tab on another site must not be able to open a live connection with this visitor's cookie.
+    var publicOrigin = new Uri(app.Configuration.GetValue("App:PublicUrl", "http://localhost:8080")!).GetLeftPart(UriPartial.Authority);
+    app.UseWebSockets(new WebSocketOptions { AllowedOrigins = { publicOrigin } });
+
     app.UseAuthentication();
     app.UseAuthorization();
     app.UseMiddleware<CsrfMiddleware>();
@@ -125,6 +133,8 @@ try
 
     app.MapAuthEndpoints();
     app.MapOrganizationEndpoints();
+    app.MapMonitorEndpoints();
+    app.MapHub<LiveHub>(LiveHub.Path);
 
     // Local development and tests apply migrations on start. Deployed environments run them as a separate step.
     if (app.Configuration.GetValue("Database:MigrateOnStartup", false))

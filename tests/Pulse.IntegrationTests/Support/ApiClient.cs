@@ -58,8 +58,19 @@ public sealed class ApiClient(HttpClient http)
 
     public async Task<Me> Me() => await Read<Me>(await Get("/api/auth/me"));
 
-    public async Task<HttpResponseMessage> Login(string email, string password, bool remember = false) =>
-        await Post("/api/auth/login", new { email, password, remember });
+    /// <summary>The sign-in cookie as a request header value, for connections that bypass the HttpClient (WebSockets).</summary>
+    public string? AuthCookie { get; private set; }
+
+    public async Task<HttpResponseMessage> Login(string email, string password, bool remember = false)
+    {
+        var response = await Post("/api/auth/login", new { email, password, remember });
+        if (response.Headers.TryGetValues("Set-Cookie", out var cookies))
+        {
+            AuthCookie = cookies.Select(c => c.Split(';')[0]).FirstOrDefault(c => c.StartsWith("pulse.auth=", StringComparison.Ordinal));
+        }
+
+        return response;
+    }
 
     private async Task<HttpResponseMessage> Send(HttpMethod method, string path, object? body)
     {

@@ -84,6 +84,40 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
             invite.HasOne<Organization>().WithMany().HasForeignKey(i => i.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         });
 
+
+        builder.Entity<HttpMonitor>(monitor =>
+        {
+            monitor.ToTable("monitors");
+            monitor.HasKey(m => m.Id);
+            monitor.Property(m => m.Id).ValueGeneratedNever();
+            monitor.Property(m => m.Name).HasMaxLength(HttpMonitor.NameMaxLength).IsRequired();
+            monitor.Property(m => m.Url).HasMaxLength(MonitorUrl.MaxLength).IsRequired();
+            monitor.Property(m => m.Method).HasConversion<string>().HasMaxLength(8).IsRequired();
+            monitor.Property(m => m.ExpectedCodes).HasMaxLength(ExpectedCodes.MaxLength).IsRequired();
+            monitor.Property(m => m.Keyword).HasMaxLength(HttpMonitor.KeywordMaxLength);
+            monitor.Property(m => m.Headers).HasColumnType("jsonb").IsRequired();
+            monitor.Property(m => m.State).HasConversion<string>().HasMaxLength(16).IsRequired();
+            monitor.Property(m => m.LastErrorType).HasConversion<string>().HasMaxLength(24);
+            monitor.Property(m => m.LastErrorMessage).HasMaxLength(CheckOutcome.MessageMaxLength);
+
+            // PostgreSQL's own row version: an edit and a check result landing together cannot silently overwrite each other.
+            monitor.Property<uint>("xmin").HasColumnType("xid").ValueGeneratedOnAddOrUpdate().IsConcurrencyToken();
+
+            monitor.HasIndex(m => m.OrganizationId);
+            monitor.HasIndex(m => m.NextCheckAt).HasFilter("state <> 'Paused'");
+            monitor.HasOne<Organization>().WithMany().HasForeignKey(m => m.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // The real table is created by hand in the migration because it is partitioned by month.
+        builder.Entity<CheckResult>(result =>
+        {
+            result.ToTable("check_results");
+            result.HasKey(c => new { c.MonitorId, c.CheckedAt });
+            result.Property(c => c.ErrorType).HasConversion<string>().HasMaxLength(24);
+            result.Property(c => c.ErrorMessage).HasMaxLength(CheckOutcome.MessageMaxLength);
+            result.HasOne<HttpMonitor>().WithMany().HasForeignKey(c => c.MonitorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<DataProtectionKey>().ToTable("data_protection_keys");
     }
 }

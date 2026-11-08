@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Pulse.Application.Abstractions;
 using Pulse.Infrastructure.Email;
 using Pulse.Infrastructure.Identity;
+using Pulse.Infrastructure.Monitoring;
 using Pulse.Infrastructure.Persistence;
 
 namespace Pulse.Infrastructure;
@@ -47,6 +48,11 @@ public static class DependencyInjection
         services.AddScoped<IIdentityService, IdentityService>();
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.Section));
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+        services.AddSingleton<IMonitorUrlGuard, DnsUrlGuard>();
+        services.AddScoped<IMonitorStats, MonitorStats>();
+        services.AddScoped<ILiveEvents, PostgresLiveEvents>();
+        services.AddScoped<CheckPartitions>();
 
         return services;
     }

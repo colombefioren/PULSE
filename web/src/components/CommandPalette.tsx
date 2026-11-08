@@ -106,7 +106,7 @@ function Palette({ onClose }: { onClose: () => void }) {
           autoComplete="off"
           spellCheck={false}
           placeholder="Search monitors, pages and actions"
-          className="h-14 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-subtle"
+          className="h-14 min-w-0 flex-1 bg-transparent text-base rounded-xl outline-none focus-visible:shadow-none focus-visible:outline-offset-[-2px] placeholder:text-subtle"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value)

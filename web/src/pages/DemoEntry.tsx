@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { api, resetCsrf } from '@/api/client'
 import { fetchMe, ME_KEY } from '@/api/hooks'
@@ -13,9 +13,12 @@ import { enterDemo, leaveDemo } from '@/session/demoMode'
 export default function DemoEntry() {
   const navigate = useNavigate()
   const client = useQueryClient()
+  // React runs effects twice in development. A second run would see the session the first one just opened.
+  const started = useRef(false)
 
   useEffect(() => {
-    let cancelled = false
+    if (started.current) return
+    started.current = true
 
     const open = async () => {
       let shared = false
@@ -37,13 +40,10 @@ export default function DemoEntry() {
         client.clear()
         enterDemo()
       }
-      if (!cancelled) void navigate('/dashboard', { replace: true })
+      void navigate('/dashboard', { replace: true })
     }
 
     void open()
-    return () => {
-      cancelled = true
-    }
   }, [client, navigate])
 
   return (

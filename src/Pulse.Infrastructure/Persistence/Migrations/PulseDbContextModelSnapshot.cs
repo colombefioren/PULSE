@@ -208,6 +208,296 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Domain.Alerts.AlertChannel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("ProtectedConfig")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("protected_config");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_alert_channels");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_alert_channels_organization_id");
+
+                    b.ToTable("alert_channels", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.AlertDelivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("last_error");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_alert_deliveries");
+
+                    b.HasIndex("IncidentId")
+                        .HasDatabaseName("ix_alert_deliveries_incident_id");
+
+                    b.HasIndex("OrganizationId")
+                        .HasDatabaseName("ix_alert_deliveries_organization_id");
+
+                    b.HasIndex("ChannelId", "CreatedAt")
+                        .HasDatabaseName("ix_alert_deliveries_channel_id_created_at");
+
+                    b.HasIndex("ChannelId", "IncidentId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("ux_alert_deliveries_once")
+                        .HasFilter("incident_id IS NOT NULL");
+
+                    b.ToTable("alert_deliveries", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.MonitorAlertChannel", b =>
+                {
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("monitor_id");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("channel_id");
+
+                    b.HasKey("MonitorId", "ChannelId")
+                        .HasName("pk_monitor_alert_channels");
+
+                    b.HasIndex("ChannelId")
+                        .HasDatabaseName("ix_monitor_alert_channels_channel_id");
+
+                    b.ToTable("monitor_alert_channels", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox_messages");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("ix_outbox_messages_next_attempt_at")
+                        .HasFilter("processed_at IS NULL");
+
+                    b.ToTable("outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Incidents.Incident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acknowledged_at");
+
+                    b.Property<Guid?>("AcknowledgedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("acknowledged_by");
+
+                    b.Property<bool>("IsManual")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_manual");
+
+                    b.Property<Guid?>("MonitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("monitor_id");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("severity");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_incidents");
+
+                    b.HasIndex("MonitorId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_incidents_open_per_monitor")
+                        .HasFilter("resolved_at IS NULL AND NOT is_manual AND monitor_id IS NOT NULL");
+
+                    b.HasIndex("OrganizationId", "StartedAt")
+                        .HasDatabaseName("ix_incidents_organization_id_started_at");
+
+                    b.ToTable("incidents", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Incidents.IncidentUpdate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AuthorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("incident_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_incident_updates");
+
+                    b.HasIndex("IncidentId", "CreatedAt")
+                        .HasDatabaseName("ix_incident_updates_incident_id_created_at");
+
+                    b.ToTable("incident_updates", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Domain.Monitors.CheckResult", b =>
                 {
                     b.Property<Guid>("MonitorId")
@@ -649,6 +939,75 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_user_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.AlertChannel", b =>
+                {
+                    b.HasOne("Pulse.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_alert_channels_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.AlertDelivery", b =>
+                {
+                    b.HasOne("Pulse.Domain.Alerts.AlertChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_alert_deliveries_alert_channels_channel_id");
+
+                    b.HasOne("Pulse.Domain.Incidents.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_alert_deliveries_incidents_incident_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Alerts.MonitorAlertChannel", b =>
+                {
+                    b.HasOne("Pulse.Domain.Alerts.AlertChannel", null)
+                        .WithMany()
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitor_alert_channels_alert_channels_channel_id");
+
+                    b.HasOne("Pulse.Domain.Monitors.HttpMonitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitor_alert_channels_monitors_monitor_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Incidents.Incident", b =>
+                {
+                    b.HasOne("Pulse.Domain.Monitors.HttpMonitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_incidents_monitors_monitor_id");
+
+                    b.HasOne("Pulse.Domain.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_incidents_organizations_organization_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Incidents.IncidentUpdate", b =>
+                {
+                    b.HasOne("Pulse.Domain.Incidents.Incident", null)
+                        .WithMany()
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_incident_updates_incidents_incident_id");
                 });
 
             modelBuilder.Entity("Pulse.Domain.Monitors.CheckResult", b =>

@@ -3,8 +3,11 @@ import { X } from 'lucide-react'
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { ApiError } from '@/api/client'
 import type { ApiMethod, MonitorInput } from '@/api/types'
+import { Link } from 'react-router'
+import { useChannels } from '@/data/alerts'
 import { useSaveMonitor } from '@/data/monitors'
 import { headersToText, inputFromView, NEW_MONITOR, parseHeaders, type MonitorView } from '@/data/monitorView'
+import { CHANNEL_LABEL } from '@/data/incidentView'
 import { Notice } from './Notice'
 import { TextField } from './TextField'
 
@@ -63,6 +66,12 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
   const [failure, setFailure] = useState(String(initial.failureThreshold))
   const [recovery, setRecovery] = useState(String(initial.recoveryThreshold))
   const [errors, setErrors] = useState<Errors>({})
+  const channels = useChannels()
+  // Until someone chooses, a new monitor alerts every channel and an existing one keeps what it had.
+  const [chosen, setChosen] = useState<string[] | null>(null)
+  const selectedChannels = chosen ?? (monitor ? monitor.alertChannelIds : (channels.data ?? []).map((c) => c.id))
+  const toggleChannel = (id: string) =>
+    setChosen(selectedChannels.includes(id) ? selectedChannels.filter((x) => x !== id) : [...selectedChannels, id])
 
   const failureError = save.error instanceof ApiError ? save.error : null
   const unplaced = failureError
@@ -101,6 +110,7 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
         headers: parsed.headers,
         failureThreshold: failures,
         recoveryThreshold: recoveries,
+        alertChannelIds: selectedChannels,
       },
       { onSuccess: (saved) => onDone(saved.id) },
     )
@@ -155,6 +165,34 @@ function MonitorForm({ monitor, onDone }: { monitor?: MonitorView; onDone: (save
           )}
         </Field>
       </div>
+
+      {channels.data && (
+        <fieldset className="field">
+          <legend className="field-label">Send alerts to</legend>
+          {channels.data.length === 0 ? (
+            <p className="field-hint">
+              No alert channels yet. <Link to="/alerts" className="underline" onClick={() => onDone()}>Add one</Link> to hear about outages by email, Slack or Discord.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {channels.data.map((channel) => (
+                <li key={channel.id}>
+                  <label className="flex min-h-9 cursor-pointer items-center gap-3 text-base">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[var(--brand-ink)]"
+                      checked={selectedChannels.includes(channel.id)}
+                      onChange={() => toggleChannel(channel.id)}
+                    />
+                    <span className="min-w-0 truncate">{channel.name}</span>
+                    <span className="text-xs text-muted">{CHANNEL_LABEL[channel.type]}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </fieldset>
+      )}
 
       <details className="rounded-2xl border border-border px-4 py-3" open={Boolean(monitor && (codes || keyword || headers))}>
         <summary className="cursor-pointer text-sm font-medium">Advanced</summary>

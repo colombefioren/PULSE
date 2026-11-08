@@ -1,7 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useSession } from '@/session/useSession'
-import { applyCheckRecorded, applyMonitorChanged, type CheckRecordedEvent, type MonitorChangedEvent } from './apply'
+import {
+  applyCheckRecorded,
+  applyIncidentChanged,
+  applyMonitorChanged,
+  applyStatusChanged,
+  type CheckRecordedEvent,
+  type IncidentEvent,
+  type MonitorChangedEvent,
+} from './apply'
 import { connectLive, type LiveConnection } from './connection'
 
 /** Keeps the signed-in team's screens current. Mounted once, in the app shell. The demo has its own simulation. */
@@ -17,8 +25,19 @@ export function useLive() {
 
     void connectLive(orgId, {
       CheckRecorded: (data) => applyCheckRecorded(client, orgId, data as CheckRecordedEvent),
-      MonitorChanged: (data) => applyMonitorChanged(client, orgId, data as MonitorChangedEvent),
-      Reconnected: () => void client.invalidateQueries({ queryKey: ['monitors'] }),
+      MonitorChanged: (data) => {
+        applyMonitorChanged(client, orgId, data as MonitorChangedEvent)
+        applyStatusChanged(client)
+      },
+      MonitorStatusChanged: () => applyStatusChanged(client),
+      IncidentOpened: (data) => applyIncidentChanged(client, data as IncidentEvent),
+      IncidentUpdated: (data) => applyIncidentChanged(client, data as IncidentEvent),
+      IncidentResolved: (data) => applyIncidentChanged(client, data as IncidentEvent),
+      Reconnected: () => {
+        void client.invalidateQueries({ queryKey: ['monitors'] })
+        void client.invalidateQueries({ queryKey: ['incidents'] })
+        void client.invalidateQueries({ queryKey: ['summary'] })
+      },
     }).then((connection) => {
       if (cancelled) connection.stop()
       else live = connection

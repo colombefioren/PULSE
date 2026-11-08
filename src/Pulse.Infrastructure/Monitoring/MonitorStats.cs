@@ -45,6 +45,23 @@ public sealed class MonitorStats(PulseDbContext db) : IMonitorStats
                 });
     }
 
+    public async Task<RangeStats> OrganizationTotalsAsync(Guid organizationId, DateTimeOffset since, CancellationToken cancellationToken)
+    {
+        var row = await db.Database.SqlQuery<RangeRow>($"""
+            SELECT count(*)::bigint AS "total",
+                   (count(*) FILTER (WHERE c.success))::bigint AS "successes",
+                   (avg(c.response_ms) FILTER (WHERE c.success))::float8 AS "avg_ms",
+                   NULL::int AS "p50",
+                   NULL::int AS "p95",
+                   NULL::int AS "p99"
+            FROM check_results c
+            JOIN monitors m ON m.id = c.monitor_id
+            WHERE m.organization_id = {organizationId} AND c.checked_at >= {since}
+            """).SingleAsync(cancellationToken);
+
+        return new RangeStats(row.Total, row.Successes, row.AvgMs is null ? null : (int)Math.Round(row.AvgMs.Value), null, null, null);
+    }
+
     public async Task<RangeStats> RangeAsync(Guid monitorId, DateTimeOffset since, CancellationToken cancellationToken)
     {
         var row = await db.Database.SqlQuery<RangeRow>($"""

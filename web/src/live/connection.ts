@@ -7,6 +7,10 @@ export interface LiveConnection {
 export interface LiveHandlers {
   CheckRecorded: (data: unknown) => void
   MonitorChanged: (data: unknown) => void
+  MonitorStatusChanged: (data: unknown) => void
+  IncidentOpened: (data: unknown) => void
+  IncidentUpdated: (data: unknown) => void
+  IncidentResolved: (data: unknown) => void
   /** The socket came back after a drop: anything could have changed meanwhile. */
   Reconnected: () => void
 }
@@ -27,6 +31,10 @@ export async function connectLive(orgId: string, handlers: LiveHandlers): Promis
 
   connection.on('CheckRecorded', handlers.CheckRecorded)
   connection.on('MonitorChanged', handlers.MonitorChanged)
+  connection.on('MonitorStatusChanged', handlers.MonitorStatusChanged)
+  connection.on('IncidentOpened', handlers.IncidentOpened)
+  connection.on('IncidentUpdated', handlers.IncidentUpdated)
+  connection.on('IncidentResolved', handlers.IncidentResolved)
   // Group membership is per connection, so every (re)connect has to subscribe again.
   connection.onreconnected(() => {
     void connection.invoke('Subscribe', orgId).then(handlers.Reconnected, () => undefined)

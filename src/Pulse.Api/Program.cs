@@ -134,6 +134,8 @@ try
     app.MapAuthEndpoints();
     app.MapOrganizationEndpoints();
     app.MapMonitorEndpoints();
+    app.MapIncidentEndpoints();
+    app.MapAlertEndpoints();
     app.MapHub<LiveHub>(LiveHub.Path);
 
     // Local development and tests apply migrations on start. Deployed environments run them as a separate step.

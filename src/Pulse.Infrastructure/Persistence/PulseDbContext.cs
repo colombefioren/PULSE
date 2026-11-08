@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Application.Abstractions;
+using Pulse.Domain.Alerts;
+using Pulse.Domain.Incidents;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 using Pulse.Infrastructure.Identity;
@@ -21,6 +23,18 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
     public DbSet<HttpMonitor> Monitors => Set<HttpMonitor>();
 
     public DbSet<CheckResult> CheckResults => Set<CheckResult>();
+
+    public DbSet<Incident> Incidents => Set<Incident>();
+
+    public DbSet<IncidentUpdate> IncidentUpdates => Set<IncidentUpdate>();
+
+    public DbSet<AlertChannel> AlertChannels => Set<AlertChannel>();
+
+    public DbSet<MonitorAlertChannel> MonitorAlertChannels => Set<MonitorAlertChannel>();
+
+    public DbSet<AlertDelivery> AlertDeliveries => Set<AlertDelivery>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -116,6 +130,86 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
             result.Property(c => c.ErrorType).HasConversion<string>().HasMaxLength(24);
             result.Property(c => c.ErrorMessage).HasMaxLength(CheckOutcome.MessageMaxLength);
             result.HasOne<HttpMonitor>().WithMany().HasForeignKey(c => c.MonitorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Incident>(incident =>
+        {
+            incident.ToTable("incidents");
+            incident.HasKey(i => i.Id);
+            incident.Property(i => i.Id).ValueGeneratedNever();
+            incident.Property(i => i.Title).HasMaxLength(Incident.TitleMaxLength).IsRequired();
+            incident.Property(i => i.Severity).HasConversion<string>().HasMaxLength(16).IsRequired();
+            incident.Property(i => i.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+            incident.HasIndex(i => new { i.OrganizationId, i.StartedAt });
+            incident.HasIndex(i => i.MonitorId);
+
+            // One open incident per monitor, enforced by the database so two workers cannot both open one.
+            incident.HasIndex(i => i.MonitorId).IsUnique().HasFilter("resolved_at IS NULL AND NOT is_manual AND monitor_id IS NOT NULL").HasDatabaseName("ux_incidents_open_per_monitor");
+            incident.HasOne<Organization>().WithMany().HasForeignKey(i => i.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+            incident.HasOne<HttpMonitor>().WithMany().HasForeignKey(i => i.MonitorId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<IncidentUpdate>(update =>
+        {
+            update.ToTable("incident_updates");
+            update.HasKey(u => u.Id);
+            update.Property(u => u.Id).ValueGeneratedNever();
+            update.Property(u => u.Kind).HasConversion<string>().HasMaxLength(16).IsRequired();
+            update.Property(u => u.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+            update.Property(u => u.Message).HasMaxLength(Incident.MessageMaxLength).IsRequired();
+            update.HasIndex(u => new { u.IncidentId, u.CreatedAt });
+            update.HasOne<Incident>().WithMany().HasForeignKey(u => u.IncidentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<AlertChannel>(channel =>
+        {
+            channel.ToTable("alert_channels");
+            channel.HasKey(c => c.Id);
+            channel.Property(c => c.Id).ValueGeneratedNever();
+            channel.Property(c => c.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
+            channel.Property(c => c.Name).HasMaxLength(AlertChannel.NameMaxLength).IsRequired();
+            channel.Property(c => c.ProtectedConfig).IsRequired();
+            channel.HasIndex(c => c.OrganizationId);
+            channel.HasOne<Organization>().WithMany().HasForeignKey(c => c.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MonitorAlertChannel>(link =>
+        {
+            link.ToTable("monitor_alert_channels");
+            link.HasKey(l => new { l.MonitorId, l.ChannelId });
+            link.HasIndex(l => l.ChannelId);
+            link.HasOne<HttpMonitor>().WithMany().HasForeignKey(l => l.MonitorId).OnDelete(DeleteBehavior.Cascade);
+            link.HasOne<AlertChannel>().WithMany().HasForeignKey(l => l.ChannelId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<AlertDelivery>(delivery =>
+        {
+            delivery.ToTable("alert_deliveries");
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).ValueGeneratedNever();
+            delivery.Property(d => d.Kind).HasConversion<string>().HasMaxLength(24).IsRequired();
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+            delivery.Property(d => d.Payload).HasColumnType("jsonb").IsRequired();
+            delivery.Property(d => d.LastError).HasMaxLength(AlertDelivery.ErrorMaxLength);
+            delivery.HasIndex(d => new { d.ChannelId, d.CreatedAt });
+            delivery.HasIndex(d => d.IncidentId);
+            delivery.HasIndex(d => d.OrganizationId);
+
+            // A state change alerts a channel once, whatever races or retries happen around it.
+            delivery.HasIndex(d => new { d.ChannelId, d.IncidentId, d.Kind }).IsUnique().HasFilter("incident_id IS NOT NULL").HasDatabaseName("ux_alert_deliveries_once");
+            delivery.HasOne<AlertChannel>().WithMany().HasForeignKey(d => d.ChannelId).OnDelete(DeleteBehavior.Cascade);
+            delivery.HasOne<Incident>().WithMany().HasForeignKey(d => d.IncidentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<OutboxMessage>(message =>
+        {
+            message.ToTable("outbox_messages");
+            message.HasKey(m => m.Id);
+            message.Property(m => m.Id).ValueGeneratedNever();
+            message.Property(m => m.Type).HasMaxLength(40).IsRequired();
+            message.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
+            message.Property(m => m.LastError).HasMaxLength(AlertDelivery.ErrorMaxLength);
+            message.HasIndex(m => m.NextAttemptAt).HasFilter("processed_at IS NULL");
         });
 
         builder.Entity<DataProtectionKey>().ToTable("data_protection_keys");

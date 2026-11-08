@@ -19,6 +19,9 @@ public interface IMonitorStats
 
     Task<IReadOnlyList<SeriesPointDto>> SeriesAsync(Guid monitorId, DateTimeOffset since, TimeSpan bucket, CancellationToken cancellationToken);
 
+    /// <summary>Checks and passes across every monitor of the organization since <paramref name="since"/>, plus the average response time of passing checks.</summary>
+    Task<RangeStats> OrganizationTotalsAsync(Guid organizationId, DateTimeOffset since, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<SeriesPointDto>> OrganizationSeriesAsync(Guid organizationId, DateTimeOffset since, TimeSpan bucket, CancellationToken cancellationToken);
 }
 

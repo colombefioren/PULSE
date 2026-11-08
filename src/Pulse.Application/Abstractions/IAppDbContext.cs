@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Pulse.Domain.Alerts;
+using Pulse.Domain.Incidents;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 
@@ -15,6 +17,18 @@ public interface IAppDbContext
     DbSet<HttpMonitor> Monitors { get; }
 
     DbSet<CheckResult> CheckResults { get; }
+
+    DbSet<Incident> Incidents { get; }
+
+    DbSet<IncidentUpdate> IncidentUpdates { get; }
+
+    DbSet<AlertChannel> AlertChannels { get; }
+
+    DbSet<MonitorAlertChannel> MonitorAlertChannels { get; }
+
+    DbSet<AlertDelivery> AlertDeliveries { get; }
+
+    DbSet<OutboxMessage> OutboxMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

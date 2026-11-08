@@ -7,9 +7,10 @@
 Pulse checks websites and APIs on a schedule, detects outages, alerts the team, and publishes a live public
 status page. Monitoring and a status page in one place, built on .NET, React and PostgreSQL.
 
-> Status: **v0.3.0, monitors.** Accounts, teams and roles are real, and so is monitoring: add a URL and the
-> worker checks it on schedule, records every result and updates the screen live. Incidents, alerts and status
-> pages land in the next milestones; until then, "Try the demo" shows the whole product on seeded data.
+> Status: **v0.4.0, incidents and alerts.** Accounts, teams and monitoring are real, and so are incidents and
+> alerts: when a monitor goes down Pulse opens an incident and tells your team by email, Slack, Discord or a
+> signed webhook. Status pages land in the next milestone; until then, "Try the demo" shows the whole product on
+> seeded data.
 
 ## Accounts
 
@@ -37,6 +38,19 @@ The checks run in `Pulse.Worker`, so the stack needs the worker as well as the A
 private or internal networks (localhost, 10.x, 192.168.x, cloud metadata and so on) are refused when saving and
 again when connecting, so Pulse cannot be used to probe your network. Monitoring a service on your own machine
 therefore needs a public address, for example through a tunnel.
+
+## Incidents and alerts
+
+An incident opens by itself when a monitor goes Down and resolves when it comes back Up. Its timeline records
+what the monitor saw, who acknowledged it and any notes your team adds. For things monitors cannot see, Owners
+and Admins can **declare an incident** by hand and post status updates (Investigating, Identified, Monitoring,
+Resolved) on it. Open incidents show on the dashboard next to live counts and uptime for 24 hours, 7 and 30 days.
+
+**Alert channels** (Alerts page) say where a message goes. Add email addresses, a Slack or Discord webhook, or a
+generic webhook, then choose which channels each monitor uses in its form. A generic webhook receives a JSON
+`POST` signed with a secret that is shown once: compare `X-Pulse-Signature` with `sha256=` plus the hex HMAC-SHA256
+of the raw body. **Send test alert** checks a channel end to end, and each channel keeps its delivery history.
+Failed deliveries are retried after 1, 5, 15 and 60 minutes before they are marked failed.
 
 ## Run it locally
 
@@ -101,8 +115,8 @@ Schema changes need a migration: `dotnet ef migrations add <Name> --project src/
 | --- | --- | --- |
 | v0.1.0 | M0 Foundations | released |
 | v0.2.0 | M1 Accounts and organizations | released |
-| v0.3.0 | M2 Monitors and the check engine | in progress |
-| v0.4.0 | M3 Incidents and alerts | planned |
+| v0.3.0 | M2 Monitors and the check engine | released |
+| v0.4.0 | M3 Incidents and alerts | in progress |
 | v0.5.0 | M4 Status pages | planned |
 | v1.0.0 | M5 Polish and launch | planned |
 

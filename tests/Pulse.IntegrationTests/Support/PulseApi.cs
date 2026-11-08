@@ -84,6 +84,7 @@ public sealed class PulseApi : WebApplicationFactory<Program>, IAsyncLifetime
         // Tests look at a page right after changing it, so the public page is not cached unless a test asks for it.
         builder.UseSetting("StatusPage:CacheSeconds", "0");
         builder.UseSetting("Badge:CacheSeconds", "0");
+        builder.UseSetting("Demo:Enabled", "true");
 
         builder.ConfigureServices(services =>
         {

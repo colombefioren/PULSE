@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Pulse.Application.Abstractions;
 using Pulse.Application.Common;
+using Pulse.Application.Demo;
 using Pulse.Domain.Common;
 using Pulse.Domain.Organizations;
 
 namespace Pulse.Application.Organizations;
 
-public sealed class OrganizationService(IAppDbContext db, IIdentityService identity, OrgAccess access, OrgSlugs slugs, TimeProvider clock)
+public sealed class OrganizationService(IAppDbContext db, IIdentityService identity, OrgAccess access, OrgSlugs slugs, DemoService demo, TimeProvider clock)
 {
     public async Task<IReadOnlyList<OrganizationSummary>> ListMineAsync(Guid userId, CancellationToken cancellationToken) =>
         await (
@@ -20,6 +21,10 @@ public sealed class OrganizationService(IAppDbContext db, IIdentityService ident
     public async Task<OrganizationSummary> CreateAsync(Guid userId, CreateOrganizationRequest request, CancellationToken cancellationToken)
     {
         new CreateOrganizationValidator().Check(request);
+        if (await demo.IsDemoUserAsync(userId, cancellationToken))
+        {
+            throw AppException.Forbidden("demo_read_only", "The demo is read-only. Sign up to create your own team.");
+        }
 
         var slug = await slugs.UniqueAsync(request.Name, cancellationToken);
         var organization = new Organization(request.Name.Trim(), slug, clock.GetUtcNow());

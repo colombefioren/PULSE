@@ -3,6 +3,7 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import { useCallback, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router'
 import { useLive } from '@/live/useLive'
+import { DemoBanner } from './DemoBanner'
 import { Sidebar } from './Sidebar'
 import { useGoShortcuts } from './shortcuts'
 import { Topbar } from './Topbar'
@@ -69,6 +70,7 @@ export function AppShell() {
 
           <div className="flex min-w-0 flex-1 flex-col bg-bg md:rounded-shell">
             <Topbar onOpenNav={() => setDrawerOpen(true)} />
+            <DemoBanner />
             <main id="content" tabIndex={-1} className="flex-1 px-4 pb-8 pt-2 md:px-8">
               <Outlet />
             </main>

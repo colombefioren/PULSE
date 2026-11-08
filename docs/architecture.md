@@ -52,12 +52,18 @@ Infrastructure.
 6. A nightly rollup aggregates raw results into hourly and daily summaries and drops raw partitions past the
    retention window.
 
-## What exists today (v0.1.0)
+## What exists today (v0.2.0)
 
 - The solution structure and project references above.
-- API: structured JSON logging, correlation ids (`X-Correlation-Id`), `/health/live`, `/health/ready`, OpenAPI.
+- API: structured JSON logging, correlation ids (`X-Correlation-Id`), `/health/live`, `/health/ready` (checks
+  the database), OpenAPI.
+- Accounts: sign up, email verification, sign in, sign out, password reset (ASP.NET Core Identity, cookie
+  auth, antiforgery, rate limiting).
+- Organizations: teams, memberships with Owner / Admin / Viewer roles, emailed invitations, tenant isolation
+  tests. All routes live under `/api`.
+- Persistence: EF Core with Npgsql, snake_case naming, migrations in `Pulse.Infrastructure`.
 - Worker: host and structured logging with a placeholder service.
-- Web: design system, logo, app shell and routes.
+- Web: design system, logo, app shell, real sign in and team management, and a seeded demo workspace.
 - Docker Compose and the CI/CD workflows.
 
 Everything else in the flow is built in the milestones listed in the README.
@@ -66,5 +72,9 @@ Everything else in the flow is built in the milestones listed in the README.
 
 - Tokens live in `web/src/index.css` as CSS variables; Tailwind reads them through `@theme`.
 - Pages are loaded on demand per route to keep the initial bundle small.
-- Theme: `data-theme` on `<html>`, set before first paint by `index.html`.
+- Theme: `data-theme` on `<html>`, set before first paint by `public/theme-init.js`.
+- Session: `session/useSession.ts` merges the signed-in user (`GET /api/auth/me`) with the demo flag and the
+  chosen team. `RequireSession` guards the app shell; `api/client.ts` adds the antiforgery header to writes.
+- Demo: `data/queries.ts` is the seam to the API. Until a feature has a real endpoint, real accounts see a
+  placeholder (`PendingFeature`) and only the demo reads seeded data.
 - Logo: `web/src/assets/logo-paths.ts` holds the traced path data used by the `Logo` and `LogoMark` components.

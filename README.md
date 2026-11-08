@@ -7,8 +7,23 @@
 Pulse checks websites and APIs on a schedule, detects outages, alerts the team, and publishes a live public
 status page. Monitoring and a status page in one place, built on .NET, React and PostgreSQL.
 
-> Status: **v0.1.0, foundations.** The solution, design system, app shell, Docker stack and CI/CD are in place.
-> Monitoring, incidents, alerts and status pages land in the next milestones.
+> Status: **v0.2.0, accounts.** Sign up with email verification, sign in, password reset, teams with roles and
+> invitations are real and tested. Monitoring, incidents, alerts and status pages land in the next milestones;
+> until then, "Try the demo" shows the product on seeded data.
+
+## Accounts
+
+Create an account at `/signup`. In the local stack the confirmation email arrives in Mailpit
+(http://localhost:8025). Every account belongs to teams with one of three roles:
+
+| Role | Can |
+| --- | --- |
+| Owner | Everything, including delete the team and grant or revoke Owner |
+| Admin | Manage members and invitations (not Owners) |
+| Viewer | Look, nothing else |
+
+People join a team through an emailed invitation that works for 7 days. A person who is not a member of a team
+gets a 404 for anything inside it, so team ids cannot be probed.
 
 ## Run it locally
 
@@ -28,7 +43,9 @@ Every setting has a development default. Copy `.env.example` to `.env` to change
 
 ### Without Docker
 
-Requirements: .NET 10 SDK, Node 24, and a PostgreSQL 16 instance for the parts that need it.
+Requirements: .NET 10 SDK, Node 24, PostgreSQL 16 and an SMTP catcher such as Mailpit on port 1025. The
+Development settings expect the `pulse` / `pulse_dev_password` database from `.env.example` on `localhost:5432`
+and apply migrations on startup. Start only the dependencies with `docker compose up postgres mailpit`.
 
 ```bash
 dotnet run --project src/Pulse.Api        # http://localhost:5080, OpenAPI UI at /scalar/v1
@@ -39,9 +56,19 @@ cd web && npm ci && npm run dev           # http://localhost:5173, proxies /api 
 ## Tests
 
 ```bash
-dotnet test Pulse.slnx                    # unit and integration (database tests use Docker from M1)
+dotnet test Pulse.slnx                    # unit and integration; integration tests start PostgreSQL with Testcontainers
 cd web && npm run lint && npm run typecheck && npm test
 ```
+
+Without Docker, point the integration tests at any PostgreSQL server you can create databases on. They create and
+drop a scratch database of their own:
+
+```bash
+PULSE_TEST_POSTGRES="Host=127.0.0.1;Port=5432;Username=postgres;Password=..." dotnet test Pulse.slnx
+```
+
+Schema changes need a migration: `dotnet ef migrations add <Name> --project src/Pulse.Infrastructure --startup-project src/Pulse.Api`
+(the tool is pinned in `dotnet-tools.json`; run `dotnet tool restore` once).
 
 ## Stack
 
@@ -59,8 +86,8 @@ cd web && npm run lint && npm run typecheck && npm test
 
 | Version | Milestone | Status |
 | --- | --- | --- |
-| v0.1.0 | M0 Foundations | in progress |
-| v0.2.0 | M1 Accounts and organizations | planned |
+| v0.1.0 | M0 Foundations | released |
+| v0.2.0 | M1 Accounts and organizations | in progress |
 | v0.3.0 | M2 Monitors and the check engine | planned |
 | v0.4.0 | M3 Incidents and alerts | planned |
 | v0.5.0 | M4 Status pages | planned |

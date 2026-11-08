@@ -128,7 +128,7 @@ jobs:
         env:
           ConnectionStrings__Default: ${{ secrets.PROD_DATABASE_URL }}
         run: |
-          if ls src/Pulse.Infrastructure/Migrations/*.cs >/dev/null 2>&1; then
+          if ls src/Pulse.Infrastructure/Persistence/Migrations/*.cs >/dev/null 2>&1; then
             dotnet tool restore
             dotnet ef database update --project src/Pulse.Infrastructure --startup-project src/Pulse.Api
           else

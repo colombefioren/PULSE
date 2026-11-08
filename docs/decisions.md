@@ -114,6 +114,69 @@ Until the API exists (M1 to M5) the UI reads from a seeded in-browser workspace,
 TanStack Query hooks in `data/queries.ts`. The hooks are the seam: replacing the adapter with real API calls
 should not touch any page. Pause, resume and acknowledge are optimistic, as they will be against the API.
 
-### Accounts are not open yet
-The sign in and sign up forms validate inline, but submitting shows "Accounts are not open yet" with a link
-to the demo workspace. Faking a successful login would mislead; real accounts arrive in M1.
+### Accounts were not open yet (replaced in M1)
+Before M1 the sign in and sign up forms validated inline but submitting said so honestly, with a link to the
+demo. Faking a successful login would have misled. M1 replaced that with real accounts.
+
+## M1 - Accounts and organizations
+
+### Cookie sign-in, not tokens
+The API signs people in with an HTTP-only, `SameSite=Lax` cookie (`pulse.auth`, 14 days, sliding) through ASP.NET
+Core Identity. Script on the page can never read it, which removes the usual place a stolen token comes from.
+Unauthenticated and forbidden requests answer 401 and 403 instead of redirecting, because the client is an SPA.
+
+### Antiforgery for every write
+Because the browser sends the cookie automatically, every non-GET request must also carry `X-XSRF-TOKEN`.
+`GET /api/auth/csrf` returns the token; the client keeps it in memory and refetches after sign in or out, since
+tokens are bound to the signed-in identity. A stale token gets one transparent retry.
+
+### Sign up never reveals whether an address exists
+Register, forgot-password and resend-verification always answer the same way (202). If the address is already
+registered, the email says so instead of the response. This costs a little friendliness and closes account
+enumeration.
+
+### Email must be verified before sign in
+A correct password for an unverified address answers 403 `email_not_verified`, and the sign in page offers to
+resend the link. The check runs after the password check so it does not become an enumeration oracle either.
+
+### Passwords
+Minimum length 10, no character-class rules (length beats complexity), 5 failed attempts lock the account for 5
+minutes. Hashing is Identity's PBKDF2 default.
+
+### Rate limiting on the auth endpoints
+A fixed window policy (`RateLimiting:AuthPermitsPerMinute`, default 20 per client address) covers the auth
+endpoints and answers 429 with `Retry-After`. Behind nginx the API must trust `X-Forwarded-For`, otherwise every
+caller looks like the proxy; compose enables `ASPNETCORE_FORWARDEDHEADERS_ENABLED`. Do that only where the API is
+reachable through the proxy alone.
+
+### Invitations replace "add member"
+The brief lists `POST /orgs/{id}/members`. Adding a person who has not agreed, by address alone, would let anyone
+attach a stranger to a team. Invitations are used instead: a 32-byte random token is emailed, only its SHA-256 is
+stored, it expires after 7 days, and a second invitation to the same address replaces the first. Accepting needs
+a signed-in account whose email matches the invitation.
+
+### Tenant isolation answers 404
+`OrgAccess.RequireAsync` is the single door into a team. A person who is not a member gets 404
+`organization_not_found`, the same as for an id that does not exist, so ids cannot be probed. A member whose role
+is too low gets 403 `insufficient_role`. The integration suite runs every team endpoint as an outsider.
+
+### Roles and the last Owner
+Three roles: Owner, Admin, Viewer. Only an Owner can grant, change or revoke Owner, and a team always keeps at
+least one (409 `last_owner`), including when the last Owner tries to leave. Deleting a team cascades through the
+database foreign keys.
+
+### Migrations
+Development and the integration tests apply migrations on startup (`Database:MigrateOnStartup`). Deployed
+environments leave it off and run `dotnet ef database update` from the gated CI job, so a rolling API restart
+never races a schema change. Data Protection keys are stored in the database so sign-in cookies and email tokens
+survive restarts and work across instances.
+
+### Real accounts see no fake data
+Monitors, incidents, status pages and the dashboard still read the seeded workspace, which belongs to the demo.
+A real account sees a plain "arrives in an upcoming release" panel on those pages instead of someone else's
+numbers. "Try the demo" (`/demo`) switches to the seeded workspace for the tab and signing in switches it off.
+
+### Browser security headers
+nginx serves the app with a strict content security policy (own origin only, no inline scripts, which is why the
+theme bootstrap is `theme-init.js`), `nosniff`, no framing, a restrictive referrer policy and HSTS. The API sends
+its own policy that allows nothing, since it only returns JSON.

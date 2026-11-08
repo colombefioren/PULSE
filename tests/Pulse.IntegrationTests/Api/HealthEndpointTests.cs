@@ -1,9 +1,10 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Pulse.IntegrationTests.Support;
 
 namespace Pulse.IntegrationTests.Api;
 
-public class HealthEndpointTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+[Collection(ApiCollection.Name)]
+public class HealthEndpointTests(PulseApi factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 

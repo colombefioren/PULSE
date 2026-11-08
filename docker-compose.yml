@@ -32,7 +32,13 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      # nginx is the only caller, so trust its X-Forwarded-* headers. Rate limiting then sees real client addresses.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-pulse};Username=${POSTGRES_USER:-pulse};Password=${POSTGRES_PASSWORD:-pulse_dev_password}
+      # Local stack only. Deployed environments run migrations from the gated CI job instead.
+      Database__MigrateOnStartup: "true"
+      # Base address used in the links inside emails.
+      App__PublicUrl: ${PUBLIC_URL:-http://localhost:8080}
       Smtp__Host: mailpit
       Smtp__Port: "1025"
     ports:

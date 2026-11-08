@@ -1,4 +1,8 @@
+import { useState } from 'react'
+import { CreateTeamDialog } from '@/components/CreateTeamDialog'
 import { PageHeader } from '@/components/PageHeader'
+import { TeamSettings } from '@/components/TeamSettings'
+import { useSession } from '@/session/useSession'
 import type { ThemePreference } from '@/theme/theme'
 import { useTheme } from '@/theme/useTheme'
 
@@ -8,13 +12,34 @@ const OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' },
 ]
 
+function NoTeam() {
+  const [creating, setCreating] = useState(false)
+  return (
+    <section aria-labelledby="no-team" className="card max-w-xl p-6">
+      <h2 id="no-team" className="text-md text-fg">
+        Team
+      </h2>
+      <p className="mt-1 text-base text-muted">You are not in a team right now. Create one, or ask for an invitation.</p>
+      <button type="button" className="btn btn-primary mt-4" onClick={() => setCreating(true)}>
+        Create a team
+      </button>
+      <CreateTeamDialog open={creating} onOpenChange={setCreating} />
+    </section>
+  )
+}
+
 export default function SettingsPage() {
   const { preference, setPreference } = useTheme()
+  const session = useSession()
+  const real = session.status === 'ready' && session.mode === 'user'
 
   return (
     <>
       <PageHeader title="Settings" />
-      <section aria-labelledby="appearance" className="card max-w-xl p-6">
+
+      {real && (session.org ? <TeamSettings key={session.org.id} org={session.org} userId={session.user.id} /> : <NoTeam />)}
+
+      <section aria-labelledby="appearance" className={`card max-w-xl p-6 ${real ? 'mt-6' : ''}`}>
         <h2 id="appearance" className="text-md text-fg">
           Appearance
         </h2>

@@ -7,7 +7,7 @@ import { Sparkline } from '@/components/charts/Sparkline'
 import { Panel } from '@/components/Panel'
 import { RangePicker } from '@/components/RangePicker'
 import { SeverityBadge } from '@/components/SeverityBadge'
-import { demoSession } from '@/data/session'
+import { useSession } from '@/session/useSession'
 import {
   useAcknowledgeIncident,
   useGlobalSeries,
@@ -48,6 +48,9 @@ function Skeleton({ className }: { className: string }) {
 }
 
 export default function DashboardPage() {
+  const session = useSession()
+  const user = session.status === 'ready' ? session.user : null
+  const org = session.status === 'ready' ? session.org : null
   const now = useNow()
   const monitors = useMonitors()
   const incidents = useIncidents()
@@ -67,9 +70,9 @@ export default function DashboardPage() {
       <div className="flex min-w-0 flex-col gap-4">
         <header className="rise flex flex-wrap items-end justify-between gap-3 pb-2">
           <div>
-            <p className="text-sm text-muted">{demoSession.org.name}</p>
+            <p className="text-sm text-muted">{org?.name}</p>
             <h1 className="text-2xl font-semibold">
-              {greeting(new Date(now).getHours())}, {demoSession.user.name}
+              {greeting(new Date(now).getHours())}, {user?.name}
             </h1>
           </div>
           {lastCheck > 0 && (

@@ -112,7 +112,7 @@ each other: anything one needs from the other goes through PostgreSQL. The code 
 
 ## Design decisions
 
-The longer reasoning, with the alternatives that were rejected, is in [docs/decisions.md](docs/decisions.md).
+The longer reasoning, with the alternatives that were rejected, is in [docs/adr](docs/adr).
 
 - **Partitioned check results, dropped not deleted.** `check_results` grows forever, so it is partitioned by month.
   Retention is `DROP TABLE` on a whole month once all of it is older than 30 days, after the worker has summed it
@@ -213,5 +213,5 @@ on `preprod`; larger work goes through a short-lived `feat/*` branch and a pull 
 ## More
 
 - [Architecture](docs/architecture.md)
-- [Decisions](docs/decisions.md)
+- [Architecture decision records](docs/adr)
 - [Changelog](CHANGELOG.md)

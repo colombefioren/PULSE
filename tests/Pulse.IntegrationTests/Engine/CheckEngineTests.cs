@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Pulse.Application;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 using Pulse.Infrastructure;
@@ -75,6 +76,7 @@ public sealed class CheckEngineTests(PulseApi api) : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
         services.AddSingleton(TimeProvider.System);
+        services.AddApplication();
         services.AddInfrastructure(configuration);
         services.AddCheckEngine(configuration);
         services.AddSingleton(checker);

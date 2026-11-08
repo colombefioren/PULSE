@@ -1,10 +1,23 @@
 <p align="center">
-  <img src="docs/brand/pulse-logo.png" alt="Pulse" width="420">
+  <img src="docs/brand/pulse-logo-readme.png" alt="Pulse" width="340">
+</p>
+
+<p align="center">
+  <a href="https://github.com/colombefioren/PULSE/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/colombefioren/PULSE/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-fac303">
+  <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white">
+  <img alt="ASP.NET Core" src="https://img.shields.io/badge/ASP.NET_Core-SignalR-512BD4?logo=dotnet&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-19-20232a?logo=react&logoColor=61DAFB">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white">
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white">
+  <img alt="Playwright" src="https://img.shields.io/badge/Playwright-E2E-2EAD33?logo=playwright&logoColor=white">
+  <img alt="GitHub Actions" src="https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white">
 </p>
 
 # Pulse
-
-[![CI](https://github.com/colombefioren/PULSE/actions/workflows/ci.yml/badge.svg)](https://github.com/colombefioren/PULSE/actions/workflows/ci.yml)
 
 Pulse checks websites and APIs on a schedule, notices when one stops answering, tells your team by email, Slack,
 Discord or webhook, and publishes a live public status page your customers can read and subscribe to. Monitoring

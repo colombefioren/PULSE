@@ -172,7 +172,7 @@ never races a schema change. Data Protection keys are stored in the database so 
 survive restarts and work across instances.
 
 ### Real accounts see no fake data
-Monitors, incidents, status pages and the dashboard still read the seeded workspace, which belongs to the demo.
+Incidents, status pages and the dashboard still read the seeded workspace, which belongs to the demo (monitors became real in M2).
 A real account sees a plain "arrives in an upcoming release" panel on those pages instead of someone else's
 numbers. "Try the demo" (`/demo`) switches to the seeded workspace for the tab and signing in switches it off.
 
@@ -180,3 +180,87 @@ numbers. "Try the demo" (`/demo`) switches to the seeded workspace for the tab a
 nginx serves the app with a strict content security policy (own origin only, no inline scripts, which is why the
 theme bootstrap is `theme-init.js`), `nosniff`, no framing, a restrictive referrer policy and HSTS. The API sends
 its own policy that allows nothing, since it only returns JSON.
+
+## M2 - Monitors and the check engine
+
+### The entity is `HttpMonitor`
+`Monitor` collides with `System.Threading.Monitor` in every file that uses locks or implicit usings, so the
+entity is named for what it is. The table is still `monitors`; a TCP or heartbeat monitor later would be another
+type with its own checker.
+
+### Addresses are checked three times
+Monitoring a URL someone else typed is a server-side request they control, so it is guarded in layers:
+1. `MonitorUrl.Parse` accepts only `http` and `https`, no user info, and refuses `localhost`, `.local`,
+   `.internal` and literal private addresses.
+2. `DnsUrlGuard` resolves the name when a monitor is saved and refuses names that point at private space.
+3. `HttpChecker` re-checks at connect time: its `ConnectCallback` resolves the name itself and refuses the
+   connection if any returned address is non-public. This is the one that matters, because DNS can change
+   between save and check (rebinding), and redirects can lead anywhere.
+
+`NetworkPolicy.IsPublic` rejects loopback, RFC 1918, link-local (including the 169.254.169.254 metadata
+address), CGNAT, multicast, reserved ranges, IPv6 unique-local and link-local, and the IPv6 forms that wrap an
+IPv4 address (mapped, NAT64, 6to4, Teredo). Proxies are off, redirects are followed up to 5 times and every hop
+goes through the same connect check.
+
+### Check results
+- A check passes when the status is in the expected list (default `200-299`) and, if set, the body contains the
+  keyword. The keyword is case-sensitive and searched in the first 1 MB only; a HEAD monitor cannot have one.
+- Failures name their cause in plain words (`Timeout after 10s - the server didn't respond`,
+  `Expected 200-299, got 503`), because the message is what people read at 3 a.m.
+- Thresholds: a monitor goes Down after `FailureThreshold` failures in a row and back Up after
+  `RecoveryThreshold` passes in a row (defaults 3 and 2). The first result moves Pending straight to Up or to
+  counting failures. Results that arrive for a paused monitor are ignored.
+- Editing the address, method, status codes, keyword or headers starts the history over (state Pending), since
+  old results describe a different check. Renaming or changing the interval does not.
+
+### Scheduling without a queue
+The worker needs no broker. Each second the scheduler claims due monitors with
+`SELECT ... FOR UPDATE SKIP LOCKED` and moves `next_check_at` forward (with 10% jitter either way so monitors do
+not all fire on the same second) in the same transaction. That is an at-most-once lease: if a worker dies after
+claiming, that one check is skipped and the next runs on schedule, which is better for monitoring than running
+the same check twice. Claimed monitors go into a bounded channel (1000) drained by a fixed number of runners
+(32), so a slow target cannot starve the others. A second worker is safe to run.
+
+### Check history is partitioned by month
+`check_results` is range-partitioned by `checked_at` with primary key `(monitor_id, checked_at)` and cascades
+from `monitors`. Dropping an old month is a metadata operation, which is how retention will work later. The
+migration creates the current and next two months; the worker tops that up every 6 hours and the recorder
+creates a missing partition and retries if an insert hits one. The table has no `organization_id`: ownership is
+reached through the monitor, and the API always checks the monitor first.
+
+### Concurrency
+Monitors carry PostgreSQL's `xmin` as a concurrency token. A stale edit answers 409 `conflict` instead of
+overwriting someone else's change. The recorder retries on a clash because the scheduler and an editor can touch
+the same row.
+
+### Live updates: NOTIFY to SignalR
+The worker writes a `pg_notify('pulse_events', ...)` after each result; every API instance holds one dedicated
+`LISTEN` connection (reconnecting with back-off) and forwards events to a SignalR group per organization. There
+is no shared message bus and no sticky sessions. Notes:
+- `Subscribe(orgId)` checks membership on the server, so a connection only ever hears its own team.
+- Group membership is not revoked when someone is removed from a team mid-session. Their connection ends with
+  their cookie and the window is short; revisit if sessions become long-lived.
+- Browsers connect with WebSockets only and `skipNegotiation`, because the negotiate request is a POST that
+  would need an antiforgery token. The cookie authenticates the socket, and the allowed origin is the origin of
+  `App:PublicUrl`.
+- The SignalR client is a lazy chunk (about 14 KB gzipped) loaded after sign-in, outside the first page load.
+- If the socket cannot open (blocked network, or a browser that does not treat `'self'` as covering `wss:` in
+  `connect-src`), screens fall back to a refetch every minute and keep working.
+
+### API shape
+- Routes stay under `/api`, not `/api/v1`: there are no outside consumers yet, and versioning an API nobody else
+  uses only doubles the surface.
+- `PATCH /api/monitors/{id}` replaces all editable fields. It never touches state; partial updates would force
+  every client to track what it did not send.
+- Request headers (for example an `Authorization` token) are stored as plain jsonb. Viewers receive the header
+  names with masked values. Encrypting them at rest is on the list for M5, alongside secret rotation.
+- Limits: 50 monitors per team (409 `monitor_limit_reached`), 10 headers, intervals 30 s / 1 / 5 / 10 / 30 min,
+  timeout 1-30 s and never longer than the interval.
+
+### The dashboard waits for incidents
+Real accounts land on Monitors. The dashboard's tiles and gauges depend on incidents and alert data from M3, so
+it stays a demo screen until then and `/dashboard` sends a real account to `/monitors`.
+
+### Demo stays read-only
+In the demo workspace the Add, Edit and Delete controls are hidden: they would have nothing to save to. Pausing
+still works because the simulation implements it.

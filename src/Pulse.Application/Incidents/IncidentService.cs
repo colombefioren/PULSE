@@ -3,9 +3,11 @@ using Pulse.Application.Abstractions;
 using Pulse.Application.Alerts;
 using Pulse.Application.Common;
 using Pulse.Application.Organizations;
+using Pulse.Application.StatusPages;
 using Pulse.Domain.Alerts;
 using Pulse.Domain.Incidents;
 using Pulse.Domain.Organizations;
+using Pulse.Domain.StatusPages;
 
 namespace Pulse.Application.Incidents;
 
@@ -13,6 +15,7 @@ public sealed class IncidentService(
     IAppDbContext db,
     OrgAccess access,
     IUserDirectory users,
+    SubscriberNotifier subscribers,
     ILiveEvents events,
     TimeProvider clock)
 {
@@ -74,9 +77,27 @@ public sealed class IncidentService(
             throw new AppException(400, "validation_failed", "Some fields need attention.", new Dictionary<string, string[]> { ["monitorId"] = ["Choose one of your monitors"] });
         }
 
-        var (incident, opening) = Incident.CreateManual(organizationId, input.MonitorId, input.Title, input.Severity, input.Status, input.Message, userId, clock.GetUtcNow());
+        var componentIds = (input.ComponentIds ?? []).Distinct().ToArray();
+        if (componentIds.Length > 0)
+        {
+            var owned = await (
+                    from component in db.StatusComponents.AsNoTracking()
+                    join page in db.StatusPages.AsNoTracking() on component.StatusPageId equals page.Id
+                    where page.OrganizationId == organizationId && componentIds.Contains(component.Id)
+                    select component.Id)
+                .CountAsync(cancellationToken);
+            if (owned != componentIds.Length)
+            {
+                throw new AppException(400, "validation_failed", "Some fields need attention.", new Dictionary<string, string[]> { ["componentIds"] = ["Choose components from your own status pages"] });
+            }
+        }
+
+        var now = clock.GetUtcNow();
+        var (incident, opening) = Incident.CreateManual(organizationId, input.MonitorId, input.Title, input.Severity, input.Status, input.Message, userId, now);
         db.Incidents.Add(incident);
         db.IncidentUpdates.Add(opening);
+        db.IncidentComponents.AddRange(componentIds.Select(id => new IncidentComponent(incident.Id, id)));
+        await subscribers.StageAsync(incident, opening, componentIds, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await Announce("IncidentOpened", incident, cancellationToken);
 
@@ -133,6 +154,7 @@ public sealed class IncidentService(
         }
 
         db.IncidentUpdates.Add(update);
+        await subscribers.StageAsync(incident, update, null, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await Announce(incident.IsResolved ? "IncidentResolved" : "IncidentUpdated", incident, cancellationToken);
 
@@ -159,13 +181,23 @@ public sealed class IncidentService(
             ? await db.Monitors.Where(m => m.Id == monitorId).Select(m => m.Name).FirstOrDefaultAsync(cancellationToken)
             : null;
 
+        var affected = await (
+                from link in db.IncidentComponents.AsNoTracking()
+                join component in db.StatusComponents.AsNoTracking() on link.ComponentId equals component.Id
+                join page in db.StatusPages.AsNoTracking() on component.StatusPageId equals page.Id
+                where link.IncidentId == incident.Id
+                orderby page.Title, component.SortOrder
+                select new AffectedComponentDto(component.Id, component.Name, page.Id, page.Title))
+            .ToListAsync(cancellationToken);
+
         var ids = updates.Select(u => u.AuthorId).Append(incident.AcknowledgedBy).OfType<Guid>().Distinct();
         var names = await users.NamesAsync(ids, cancellationToken);
 
         return new IncidentDetailDto(
             ToDto(incident, monitorName, names),
             updates.Select(u => new IncidentUpdateDto(u.Id, u.Kind, u.Status, u.Message, u.AuthorId is { } author ? names.GetValueOrDefault(author) : null, u.CreatedAt)).ToList(),
-            alerts.Select(a => new DeliveryDto(a.Delivery.Id, a.Delivery.ChannelId, a.Name, a.Type, a.Delivery.IncidentId, a.Delivery.Kind, a.Delivery.Status, a.Delivery.Attempts, a.Delivery.CreatedAt, a.Delivery.SentAt, a.Delivery.LastError)).ToList());
+            alerts.Select(a => new DeliveryDto(a.Delivery.Id, a.Delivery.ChannelId, a.Name, a.Type, a.Delivery.IncidentId, a.Delivery.Kind, a.Delivery.Status, a.Delivery.Attempts, a.Delivery.CreatedAt, a.Delivery.SentAt, a.Delivery.LastError)).ToList(),
+            affected);
     }
 
     private async Task<(Incident Incident, Role Role)> LoadAsync(Guid incidentId, Guid userId, Role minimum, bool track, CancellationToken cancellationToken)

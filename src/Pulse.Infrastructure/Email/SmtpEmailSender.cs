@@ -38,6 +38,11 @@ public sealed class SmtpEmailSender(IOptions<SmtpOptions> options, ILogger<SmtpE
         mime.From.Add(new MailboxAddress(settings.FromName, settings.FromAddress));
         mime.To.Add(MailboxAddress.Parse(message.To));
         mime.Subject = message.Subject;
+        foreach (var (name, value) in message.Headers ?? new Dictionary<string, string>())
+        {
+            mime.Headers.Add(name, value);
+        }
+
         mime.Body = new BodyBuilder { TextBody = message.Text, HtmlBody = message.Html }.ToMessageBody();
 
         using var client = new SmtpClient();

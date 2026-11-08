@@ -27,6 +27,7 @@ try
     builder.Services.AddHostedService<PartitionMaintenanceService>();
     builder.Services.AddHostedService<CheckEngineService>();
     builder.Services.AddHostedService<AlertDispatcherService>();
+    builder.Services.AddHostedService<RollupService>();
 
     builder.Build().Run();
 }

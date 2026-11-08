@@ -12,6 +12,10 @@ export interface RecordedCall {
   path: string
   body: unknown
   csrf: string | null
+  /** The Content-Type the request was sent with. */
+  contentType: string | null
+  /** Size in bytes when a file was uploaded as the body. */
+  fileBytes: number | null
 }
 
 type Handler = MockReply | ((call: RecordedCall) => MockReply)
@@ -33,6 +37,8 @@ export function mockApi(handlers: Record<string, Handler> = {}) {
       path,
       body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
       csrf: headers.get('X-XSRF-TOKEN'),
+      contentType: headers.get('Content-Type'),
+      fileBytes: init?.body instanceof Blob ? init.body.size : null,
     }
     calls.push(call)
 

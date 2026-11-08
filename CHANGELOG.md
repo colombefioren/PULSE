@@ -3,6 +3,32 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
+## [0.5.0] - 2026-11-08
+
+Status pages (milestone M4).
+
+### Added
+- Status pages: a team builds up to 5, each at `/status/{address}` with a title, an accent colour, a footer, an
+  optional logo (PNG, JPEG or WebP up to 256 KB) and a switch for average response times.
+- Components: lines on the page fed by one or more monitors, optionally grouped and reordered. A component is
+  down when all its monitors are down and degraded when only some are; paused monitors do not count.
+- The public page: current status banner, 90-day uptime bars per component, active incidents with their public
+  updates and the last 30 days of past incidents. It needs no sign-in, is cached for 30 seconds and refreshes
+  itself over a socket the moment something changes.
+- Manual incidents can name the components they affect, so they show on the page with the text the team wrote.
+  Incidents opened by monitors show a plain sentence without the monitor's name, address or error.
+- Email subscribers: anyone can ask for updates, confirm by email (double opt-in) and leave with one click, including
+  the one-click unsubscribe header mail apps use. Subscribers hear when an incident on the page opens, gets a
+  public update or resolves.
+- A daily rollup job in the worker so the 90-day bars read compact per-day numbers instead of raw checks.
+- Rate limits on the public endpoints: 120 reads and 6 subscribe or unsubscribe requests per minute per address.
+- Status pages and a component picker when declaring an incident in the web app; a page editor with logo upload,
+  component ordering and a live contrast hint for the accent colour.
+
+### Changed
+- `/status-pages` shows real pages for signed-in accounts instead of a placeholder.
+- The public page for real addresses is drawn from the API; `/status/pulse-demo` stays a simulation.
+
 ## [0.4.0] - 2026-11-08
 
 Incidents and alerts (milestone M3).

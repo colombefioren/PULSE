@@ -7,10 +7,10 @@
 Pulse checks websites and APIs on a schedule, detects outages, alerts the team, and publishes a live public
 status page. Monitoring and a status page in one place, built on .NET, React and PostgreSQL.
 
-> Status: **v0.4.0, incidents and alerts.** Accounts, teams and monitoring are real, and so are incidents and
-> alerts: when a monitor goes down Pulse opens an incident and tells your team by email, Slack, Discord or a
-> signed webhook. Status pages land in the next milestone; until then, "Try the demo" shows the whole product on
-> seeded data.
+> Status: **v0.5.0, status pages.** Accounts, teams, monitoring, incidents, alerts and public status pages are
+> real: when a monitor goes down Pulse opens an incident, tells your team by email, Slack, Discord or a signed
+> webhook, and shows it on a page your customers can read and subscribe to. "Try the demo" shows the whole
+> product on seeded data.
 
 ## Accounts
 
@@ -51,6 +51,25 @@ generic webhook, then choose which channels each monitor uses in its form. A gen
 `POST` signed with a secret that is shown once: compare `X-Pulse-Signature` with `sha256=` plus the hex HMAC-SHA256
 of the raw body. **Send test alert** checks a channel end to end, and each channel keeps its delivery history.
 Failed deliveries are retried after 1, 5, 15 and 60 minutes before they are marked failed.
+
+## Status pages
+
+Owners and Admins build up to five pages under **Status pages**. A page has a title, an address
+(`/status/your-address`), an accent colour, a footer, an optional logo and a list of **components**: lines such as
+"Website" or "API", each fed by one or more monitors and optionally grouped. A component is down when all its
+monitors are down, degraded when only some are, and in maintenance when every monitor behind it is paused.
+
+Visitors need no account. The public page shows the current status, 90 days of uptime per component, active
+incidents with their updates and the last 30 days of past incidents, and it refreshes itself over a socket when
+something changes. It is cached for 30 seconds and its endpoints are rate limited per address.
+
+What visitors see is deliberately plain. An incident opened by a monitor reads "Issue affecting Checkout": the
+monitor's name, address and error stay private, and so do internal notes and acknowledgements. Incidents you
+declare by hand can name the components they affect and go out exactly as you wrote them.
+
+Visitors can **subscribe by email**. They confirm from a link in the first email (nothing is sent before that),
+and every later email carries a one-click unsubscribe link and the `List-Unsubscribe` headers mail apps use.
+Subscribers hear when an incident on the page opens, gets a public update or resolves.
 
 ## Run it locally
 
@@ -116,8 +135,8 @@ Schema changes need a migration: `dotnet ef migrations add <Name> --project src/
 | v0.1.0 | M0 Foundations | released |
 | v0.2.0 | M1 Accounts and organizations | released |
 | v0.3.0 | M2 Monitors and the check engine | released |
-| v0.4.0 | M3 Incidents and alerts | in progress |
-| v0.5.0 | M4 Status pages | planned |
+| v0.4.0 | M3 Incidents and alerts | released |
+| v0.5.0 | M4 Status pages | released |
 | v1.0.0 | M5 Polish and launch | planned |
 
 ## Branches

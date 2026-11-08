@@ -40,6 +40,7 @@ export const routes: RouteObject[] = [
     ],
   },
   { path: 'status/:slug', ...page(() => import('@/pages/PublicStatusPage')) },
+  { path: 'subscription/invalid', ...page(() => import('@/pages/SubscriptionInvalidPage')) },
   {
     Component: RequireSession,
     children: [
@@ -51,7 +52,8 @@ export const routes: RouteObject[] = [
           { path: 'monitors/:id', ...page(() => import('@/pages/MonitorDetailPage'), { crumb: 'Monitor' }) },
           { path: 'incidents', ...page(() => import('@/pages/IncidentsPage'), { crumb: 'Incidents' }) },
           { path: 'incidents/:id', ...page(() => import('@/pages/IncidentDetailPage'), { crumb: 'Incident' }) },
-          { path: 'status-pages', ...page(() => import('@/pages/StatusPagesPage'), { crumb: 'Status pages', demoOnly: 'Status pages' }) },
+          { path: 'status-pages', ...page(() => import('@/pages/StatusPagesPage'), { crumb: 'Status pages' }) },
+          { path: 'status-pages/:id', ...page(() => import('@/pages/StatusPageEditorPage'), { crumb: 'Status page' }) },
           { path: 'alerts', ...page(() => import('@/pages/AlertsPage'), { crumb: 'Alerts' }) },
           { path: 'settings', ...page(() => import('@/pages/SettingsPage'), { crumb: 'Settings' }) },
           { path: '*', ...page(() => import('@/pages/NotFoundPage'), { crumb: 'Not found' }) },

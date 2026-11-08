@@ -79,6 +79,10 @@ public sealed class PulseApi : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("RateLimiting:AuthPermitsPerMinute", "10000");
         builder.UseSetting("App:PublicUrl", "https://pulse.test");
+        builder.UseSetting("RateLimiting:PublicReadPermitsPerMinute", "100000");
+        builder.UseSetting("RateLimiting:PublicWritePermitsPerMinute", "100000");
+        // Tests look at a page right after changing it, so the public page is not cached unless a test asks for it.
+        builder.UseSetting("StatusPage:CacheSeconds", "0");
 
         builder.ConfigureServices(services =>
         {
@@ -104,8 +108,25 @@ public sealed class PulseApi : WebApplicationFactory<Program>, IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
+    /// <summary>Reads one value, for facts only the database knows (like a token that is only ever sent by email).</summary>
+    public async Task<T?> Scalar<T>(string sql, params object[] parameters)
+    {
+        await using var source = new NpgsqlDataSourceBuilder(ConnectionString).Build();
+        await using var command = source.CreateCommand(sql);
+        foreach (var parameter in parameters)
+        {
+            command.Parameters.AddWithValue(parameter);
+        }
+
+        var value = await command.ExecuteScalarAsync();
+        return value is null or DBNull ? default : (T)value;
+    }
+
     /// <summary>A new client with its own cookie jar, like a separate browser.</summary>
     public ApiClient NewClient() => new(CreateClient());
+
+    /// <summary>A client that does not follow redirects, to look at where a link sends a visitor.</summary>
+    public ApiClient NewClientWithoutRedirects() => new(CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }));
 }
 
 [CollectionDefinition(Name)]

@@ -146,7 +146,7 @@ export default function IncidentDetailPage() {
     )
   }
 
-  const { incident, updates, alerts } = data
+  const { incident, updates, alerts, components } = data
   const open = incident.resolvedAt === null
   const seconds = ((incident.resolvedAt ?? now) - incident.startedAt) / 1000
 
@@ -172,6 +172,12 @@ export default function IncidentDetailPage() {
             )}
             Started {new Date(incident.startedAt).toLocaleString('en-GB')} · {open ? 'ongoing for' : 'lasted'} {formatDuration(seconds)}
           </p>
+          {components.length > 0 && (
+            <p className="mt-2 text-sm text-muted" data-testid="affected-components">
+              Shown on your status {new Set(components.map((c) => c.statusPageId)).size === 1 ? 'page' : 'pages'} as{' '}
+              <span className="font-medium text-fg">{components.map((c) => c.name).join(', ')}</span>
+            </p>
+          )}
         </div>
         {open &&
           (incident.acknowledgedAt ? (

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Pulse.Api.Endpoints;
 using Pulse.Api.Infrastructure;
 using Pulse.Api.Live;
+using Pulse.Api.Public;
 using Pulse.Application;
 using Pulse.Application.Common;
 using Pulse.Infrastructure;
@@ -41,6 +42,8 @@ try
     services.AddApplication();
     services.AddInfrastructure(builder.Configuration);
 
+    services.AddMemoryCache();
+    services.AddSingleton<StatusCache>();
     services.AddSignalR();
     services.AddHostedService<LiveEventListener>();
 
@@ -86,6 +89,15 @@ try
         options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = authPermits, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        // Anyone can call these, so each address gets a budget: generous for reading, small for the actions that send mail.
+        var readPermits = builder.Configuration.GetValue("RateLimiting:PublicReadPermitsPerMinute", 120);
+        var writePermits = builder.Configuration.GetValue("RateLimiting:PublicWritePermitsPerMinute", 6);
+        options.AddPolicy("public-read", context => RateLimitPartition.GetFixedWindowLimiter(
+            "read:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = readPermits, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        options.AddPolicy("public-write", context => RateLimitPartition.GetFixedWindowLimiter(
+            "write:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = writePermits, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
         options.OnRejected = async (context, token) =>
         {
             context.HttpContext.Response.Headers.RetryAfter = "60";
@@ -136,7 +148,10 @@ try
     app.MapMonitorEndpoints();
     app.MapIncidentEndpoints();
     app.MapAlertEndpoints();
+    app.MapStatusPageEndpoints();
+    app.MapPublicStatusEndpoints();
     app.MapHub<LiveHub>(LiveHub.Path);
+    app.MapHub<StatusHub>(StatusHub.Path);
 
     // Local development and tests apply migrations on start. Deployed environments run them as a separate step.
     if (app.Configuration.GetValue("Database:MigrateOnStartup", false))

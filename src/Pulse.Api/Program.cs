@@ -5,7 +5,7 @@ using Serilog.Formatting.Compact;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(new RenderedCompactJsonFormatter())
-    .CreateBootstrapLogger();
+    .CreateLogger();
 
 try
 {

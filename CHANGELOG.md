@@ -30,6 +30,12 @@ Polish and launch (milestone M5).
 - The worker could not start in the Development environment: the container check found that it could not build the
   account services without the authentication services, and that the alert dispatcher held a scoped transport for its
   whole life. A test now builds the worker's container with every registration checked.
+- A public status page could miss a live change: the page is served with `Cache-Control: max-age=30`, and the browser
+  answered the refetch that a live event triggers from its own copy. Reads from the web app now revalidate.
+- A badge that was requested before it was switched on stayed "unavailable" for five minutes; that answer is now
+  remembered for ten seconds.
+- The public status page has a `main` landmark, and the response chart no longer prints two labels over each other
+  when it has only a couple of points.
 
 ## [0.5.0] - 2026-11-08
 

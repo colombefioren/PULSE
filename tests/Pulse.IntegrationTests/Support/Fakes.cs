@@ -31,3 +31,12 @@ public sealed partial class CapturingEmailSender : IEmailSender
     [GeneratedRegex(@"https?://\S+")]
     private static partial Regex LinkPattern();
 }
+
+/// <summary>Stands in for the DNS lookup: only <see cref="InternalHost"/> counts as pointing at a private address.</summary>
+public sealed class FakeUrlGuard : IMonitorUrlGuard
+{
+    public const string InternalHost = "internal.example.net";
+
+    public Task<string?> CheckHostAsync(Uri uri, CancellationToken cancellationToken) =>
+        Task.FromResult<string?>(uri.IdnHost == InternalHost ? $"{InternalHost} points at a private or internal address, which Pulse cannot reach." : null);
+}

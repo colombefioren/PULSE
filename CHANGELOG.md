@@ -3,6 +3,35 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
+## [0.3.0] - 2026-11-08
+
+Monitors and the check engine (milestone M2).
+
+### Added
+- Monitors: add, edit, pause, resume and delete an HTTP or HTTPS check with a method, interval (30 s to 30 min),
+  timeout, expected status codes, a keyword the response must contain and request headers. Up to 50 per team.
+- A check engine in the worker: a scheduler that claims due monitors without a queue (`FOR UPDATE SKIP LOCKED`),
+  jittered intervals, a bounded pool of runners and a recorder that stores each result and any state change
+  together. Several workers can run side by side.
+- Failure thresholds: a monitor goes Down after N failed checks in a row and Up after M passes in a row.
+- Plain-language failure reasons: timeouts, DNS and TLS errors, refused connections, unexpected status codes and
+  missing keywords.
+- Stats per monitor: uptime for 24 hours, 7 and 30 days, average, p50, p95 and p99 response time and a chart series.
+- Check history in monthly partitions, created ahead of time by the worker.
+- Live updates over SignalR, fed by PostgreSQL `NOTIFY`, so statuses and recent checks change on screen without
+  reloading. The connection is authenticated and joined per team, with a membership check.
+- Monitors list and detail pages on real data, an add and edit form with server-side error messages, a delete
+  confirmation and the `C` shortcut. Viewers see everything and change nothing.
+
+### Security
+- Monitor addresses are validated on save and again when the connection is made, so names that resolve to
+  private, loopback, link-local or metadata addresses (including through redirects and DNS changes) are never
+  contacted.
+- Request header values are masked for Viewers.
+
+### Changed
+- A signed-in account lands on Monitors; the dashboard stays a demo screen until incidents arrive.
+
 ## [0.2.0] - 2026-11-08
 
 Accounts and organizations (milestone M1).

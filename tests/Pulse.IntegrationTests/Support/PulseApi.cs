@@ -84,6 +84,10 @@ public sealed class PulseApi : WebApplicationFactory<Program>, IAsyncLifetime
         {
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Emails);
+
+            // No DNS in tests: names resolve to nothing, and one reserved name is treated as internal.
+            services.RemoveAll<IMonitorUrlGuard>();
+            services.AddSingleton<IMonitorUrlGuard>(new FakeUrlGuard());
         });
     }
 

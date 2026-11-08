@@ -7,9 +7,9 @@
 Pulse checks websites and APIs on a schedule, detects outages, alerts the team, and publishes a live public
 status page. Monitoring and a status page in one place, built on .NET, React and PostgreSQL.
 
-> Status: **v0.2.0, accounts.** Sign up with email verification, sign in, password reset, teams with roles and
-> invitations are real and tested. Monitoring, incidents, alerts and status pages land in the next milestones;
-> until then, "Try the demo" shows the product on seeded data.
+> Status: **v0.3.0, monitors.** Accounts, teams and roles are real, and so is monitoring: add a URL and the
+> worker checks it on schedule, records every result and updates the screen live. Incidents, alerts and status
+> pages land in the next milestones; until then, "Try the demo" shows the whole product on seeded data.
 
 ## Accounts
 
@@ -24,6 +24,19 @@ Create an account at `/signup`. In the local stack the confirmation email arrive
 
 People join a team through an emailed invitation that works for 7 days. A person who is not a member of a team
 gets a 404 for anything inside it, so team ids cannot be probed.
+
+## Monitors
+
+Owners and Admins add monitors from **Monitors > Add monitor** (or press `C`). A monitor checks one `http` or
+`https` address every 30 seconds to 30 minutes and can require specific status codes, a keyword in the response
+and request headers. It goes Down after a few failures in a row and Up again after a few passes, so one dropped
+packet does not page anyone. Each monitor shows uptime for 24 hours, 7 and 30 days, average and p95/p99 response
+times, a response chart and the recent checks with the reason for every failure. Viewers can look but not change.
+
+The checks run in `Pulse.Worker`, so the stack needs the worker as well as the API. Addresses that point at
+private or internal networks (localhost, 10.x, 192.168.x, cloud metadata and so on) are refused when saving and
+again when connecting, so Pulse cannot be used to probe your network. Monitoring a service on your own machine
+therefore needs a public address, for example through a tunnel.
 
 ## Run it locally
 
@@ -87,8 +100,8 @@ Schema changes need a migration: `dotnet ef migrations add <Name> --project src/
 | Version | Milestone | Status |
 | --- | --- | --- |
 | v0.1.0 | M0 Foundations | released |
-| v0.2.0 | M1 Accounts and organizations | in progress |
-| v0.3.0 | M2 Monitors and the check engine | planned |
+| v0.2.0 | M1 Accounts and organizations | released |
+| v0.3.0 | M2 Monitors and the check engine | in progress |
 | v0.4.0 | M3 Incidents and alerts | planned |
 | v0.5.0 | M4 Status pages | planned |
 | v1.0.0 | M5 Polish and launch | planned |

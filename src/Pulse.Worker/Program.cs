@@ -1,3 +1,4 @@
+using Pulse.Infrastructure;
 using Pulse.Worker;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -17,7 +18,11 @@ try
         .Enrich.WithProperty("Service", "pulse-worker")
         .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
-    builder.Services.AddHostedService<HeartbeatService>();
+    builder.Services.AddSingleton(TimeProvider.System);
+    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.Services.AddCheckEngine(builder.Configuration);
+    builder.Services.AddHostedService<PartitionMaintenanceService>();
+    builder.Services.AddHostedService<CheckEngineService>();
 
     builder.Build().Run();
 }

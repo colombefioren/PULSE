@@ -59,6 +59,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # The API applies migrations at startup in this stack, and checks need the tables it creates.
+      api:
+        condition: service_started
 
   web:
     build:

@@ -3,24 +3,9 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
-## [Unreleased]
-
-Design refresh.
-
-### Added
-- Dashboard with live counts, open incidents you can acknowledge, a response-time graph and three uptime gauges.
-- Public status page with a banner, grouped components, 90-day uptime bars, incident timelines, a response-time graph and an email subscribe form.
-- Monitor detail page with uptime figures and a response-time chart.
-- Sign in and sign up pages with inline validation.
-- Landing page with a live product preview, feature cards and the live status page embedded.
-- A seeded demo workspace behind query hooks, so the UI works before the API exists.
-
-### Changed
-- Restyled the app as a floating sidebar, rounded shell and ring-gauge rail, in the original yellow palette, with pill controls.
-
 ## [0.1.0] - 2026-11-08
 
-Foundations (milestone M0).
+Foundations (milestone M0) and the first version of the interface, running on a seeded demo workspace.
 
 ### Added
 - Clean Architecture .NET 10 solution: Domain, Application, Infrastructure, Api and Worker projects.
@@ -35,3 +20,12 @@ Foundations (milestone M0).
 - Docker Compose stack with PostgreSQL 16, Mailpit, API, worker and web.
 - GitHub Actions: CI (build, format check, tests, lint, typecheck, image builds), preprod publish,
   prod release with tagging, and Dependabot.
+- Dashboard with live counts, open incidents you can acknowledge, a response-time graph and three uptime gauges.
+- Public status page with a banner, grouped components, 90-day uptime bars, incident timelines, a response-time graph and an email subscribe form.
+- Monitor detail page with uptime figures and a response-time chart.
+- Sign in and sign up pages with inline validation.
+- Landing page with a live product preview, feature cards and the live status page embedded.
+- A seeded demo workspace behind query hooks, so the UI works before the API exists.
+
+### Changed
+- Restyled the app as a floating sidebar, rounded shell and ring-gauge rail, in the original yellow palette, with pill controls.

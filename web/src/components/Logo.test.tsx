@@ -14,6 +14,19 @@ describe('Logo', () => {
     expect(Number(svg.getAttribute('width')) / Number(svg.getAttribute('height'))).toBeCloseTo(1090 / 359, 2)
   })
 
+  it('adds space between the icon and the wordmark without scaling the shapes', () => {
+    const { container, rerender } = render(<Logo height={22} />)
+    const plain = container.querySelector('svg')!
+    const plainWidth = Number(plain.getAttribute('width'))
+
+    rerender(<Logo height={22} iconGap={10} />)
+    const spaced = container.querySelector('svg')!
+
+    expect(Number(spaced.getAttribute('width'))).toBeCloseTo(plainWidth + 10, 1)
+    expect(spaced.getAttribute('height')).toBe('22')
+    expect(spaced.querySelector('g')).toHaveAttribute('transform', expect.stringMatching(/^translate\(/))
+  })
+
   it('is hidden from assistive tech when it sits next to the same text', () => {
     const { container } = render(<Logo label="" />)
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')

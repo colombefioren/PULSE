@@ -24,12 +24,21 @@ function a11y(label: string) {
   return label ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true as const }
 }
 
-/** Full logo: ring, heartbeat, dot and the "Pulse" wordmark, exactly as traced from the brand PNG. */
-export function Logo({ height = 24, className, label = 'Pulse' }: LogoProps) {
+interface FullLogoProps extends LogoProps {
+  /** Extra space in px between the ring icon and the wordmark, on top of the traced spacing. */
+  iconGap?: number
+}
+
+/** Full logo: ring, heartbeat, dot and the "Pulse" wordmark, as traced from the brand PNG. */
+export function Logo({ height = 24, className, label = 'Pulse', iconGap = 0 }: FullLogoProps) {
+  // Convert the px gap into the logo's own units so the shapes keep their proportions.
+  const extra = (iconGap * LOGO_HEIGHT) / height
+  const viewWidth = LOGO_FULL_WIDTH + extra
+
   return (
     <svg
-      viewBox={`0 0 ${LOGO_FULL_WIDTH} ${LOGO_HEIGHT}`}
-      width={(height * LOGO_FULL_WIDTH) / LOGO_HEIGHT}
+      viewBox={`0 0 ${viewWidth} ${LOGO_HEIGHT}`}
+      width={(height * viewWidth) / LOGO_HEIGHT}
       height={height}
       fill="var(--brand)"
       fillRule="evenodd"
@@ -38,7 +47,9 @@ export function Logo({ height = 24, className, label = 'Pulse' }: LogoProps) {
     >
       <path d={LOGO_RING} />
       <path d={LOGO_PULSE} />
-      <path d={LOGO_WORDMARK} />
+      <g transform={`translate(${extra} 0)`}>
+        <path d={LOGO_WORDMARK} />
+      </g>
     </svg>
   )
 }

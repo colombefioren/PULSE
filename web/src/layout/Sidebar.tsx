@@ -47,7 +47,7 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, onNavigate }: Si
   return (
     <div className="flex h-full flex-col">
       <div className={`flex h-12 items-center border-b border-border ${collapsed ? 'justify-center' : 'px-4'}`}>
-        {collapsed ? <LogoMark height={24} animate /> : <Logo height={22} />}
+        {collapsed ? <LogoMark height={24} animate /> : <Logo height={22} iconGap={10} />}
       </div>
 
       <nav aria-label="Main" className="flex-1 p-2">

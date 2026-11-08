@@ -193,11 +193,18 @@ describe('Protected pages', () => {
     expect(screen.queryByText('Public API')).not.toBeInTheDocument()
   })
 
-  it('sends a real account from the dashboard, which is not built yet, to the monitors', async () => {
-    mockApi({ 'GET /api/auth/me': { body: ana }, 'GET /api/orgs/org-acme/monitors': { body: [] } })
-    const { router } = renderAt('/dashboard', { demo: false })
+  it('shows a real account its own dashboard', async () => {
+    mockApi({
+      'GET /api/auth/me': { body: ana },
+      'GET /api/orgs/org-acme/monitors': { body: [] },
+      'GET /api/orgs/org-acme/summary': { body: { up: 0, down: 0, paused: 0, pending: 0, openIncidents: 0, uptime24h: null, uptime7d: null, uptime30d: null, avgResponseMs: null } },
+      'GET /api/orgs/org-acme/incidents?state=open&limit=20': { body: { items: [], nextBefore: null } },
+      'GET /api/orgs/org-acme/series?range=24h': { body: { range: '24h', series: [] } },
+    })
+    renderAt('/dashboard', { demo: false })
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/monitors'))
+    expect(await screen.findByText('Nothing is down. Incidents appear here the moment a monitor fails its checks.')).toBeInTheDocument()
+    expect(screen.getAllByText('No checks yet')).toHaveLength(3)
   })
 })
 

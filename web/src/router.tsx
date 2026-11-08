@@ -46,12 +46,13 @@ export const routes: RouteObject[] = [
       {
         Component: AppShell,
         children: [
-          { path: 'dashboard', ...page(() => import('@/pages/DashboardPage'), { crumb: 'Dashboard', demoOnly: 'Dashboard', redirectTo: '/monitors' }) },
+          { path: 'dashboard', ...page(() => import('@/pages/DashboardPage'), { crumb: 'Dashboard' }) },
           { path: 'monitors', ...page(() => import('@/pages/MonitorsPage'), { crumb: 'Monitors' }) },
           { path: 'monitors/:id', ...page(() => import('@/pages/MonitorDetailPage'), { crumb: 'Monitor' }) },
-          { path: 'incidents', ...page(() => import('@/pages/IncidentsPage'), { crumb: 'Incidents', demoOnly: 'Incidents' }) },
+          { path: 'incidents', ...page(() => import('@/pages/IncidentsPage'), { crumb: 'Incidents' }) },
+          { path: 'incidents/:id', ...page(() => import('@/pages/IncidentDetailPage'), { crumb: 'Incident' }) },
           { path: 'status-pages', ...page(() => import('@/pages/StatusPagesPage'), { crumb: 'Status pages', demoOnly: 'Status pages' }) },
-          { path: 'alerts', ...page(() => import('@/pages/AlertsPage'), { crumb: 'Alerts', demoOnly: 'Alerts' }) },
+          { path: 'alerts', ...page(() => import('@/pages/AlertsPage'), { crumb: 'Alerts' }) },
           { path: 'settings', ...page(() => import('@/pages/SettingsPage'), { crumb: 'Settings' }) },
           { path: '*', ...page(() => import('@/pages/NotFoundPage'), { crumb: 'Not found' }) },
         ],

@@ -32,6 +32,7 @@ const monitor = (over: Partial<ApiMonitor> = {}): ApiMonitor => ({
   lastErrorMessage: null,
   badgeEnabled: false,
   createdAt: '2026-11-01T10:00:00Z',
+  alertChannelIds: [],
   ...over,
 })
 
@@ -338,6 +339,7 @@ describe('live updates', () => {
     headers: {},
     failureThreshold: 3,
     recoveryThreshold: 2,
+    alertChannelIds: [],
     status: 'up',
     lastResponseMs: 100,
     lastCheckedAt: Date.parse('2026-11-08T10:00:00Z'),

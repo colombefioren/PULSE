@@ -14,7 +14,7 @@ export function PendingFeature({ feature }: { feature: string }) {
       <EmptyState
         icon={Hourglass}
         title={`${feature} arrive in an upcoming release`}
-        description="Your account and team are ready. Monitoring itself is the next thing being built. The demo workspace shows how this screen will look with real data."
+        description="Monitors, incidents and alerts are live for your team. This screen is next. The demo workspace shows how it will look with real data."
         action={
           <Link to="/demo" className="btn btn-primary">
             Open the demo <ArrowRight size={16} strokeWidth={1.5} aria-hidden />

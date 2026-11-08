@@ -130,6 +130,21 @@ public class IncidentTests(PulseApi api)
     }
 
     [Fact]
+    public async Task Lists_only_the_incidents_of_one_monitor_when_asked()
+    {
+        var owner = await api.SignUp("inc-by-monitor");
+        var mine = await owner.CreateMonitor("Mine");
+        var other = await owner.CreateMonitor("Other");
+        await api.OpenMonitorIncident(owner, mine, "Mine is down");
+        await api.OpenMonitorIncident(owner, other, "Other is down");
+        await owner.CreateManualIncident("By hand");
+
+        var page = await owner.Client.Read<IncidentPage>(await owner.Client.Get($"{Path(owner)}?monitorId={mine.Id}"));
+
+        page.Items.Select(i => i.Title).Should().Equal("Mine is down");
+    }
+
+    [Fact]
     public async Task Pages_through_the_list_with_a_cursor()
     {
         var owner = await api.SignUp("inc-page");

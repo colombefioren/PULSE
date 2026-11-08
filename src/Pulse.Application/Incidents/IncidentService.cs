@@ -20,7 +20,8 @@ public sealed class IncidentService(
     public const int MaxPageSize = 100;
 
     /// <param name="state">"open", "resolved", or anything else for both.</param>
-    public async Task<IncidentPageDto> ListAsync(Guid organizationId, Guid userId, string? state, DateTimeOffset? before, int? limit, CancellationToken cancellationToken)
+    /// <param name="monitorId">Only the incidents of this monitor, when given.</param>
+    public async Task<IncidentPageDto> ListAsync(Guid organizationId, Guid userId, string? state, DateTimeOffset? before, int? limit, Guid? monitorId, CancellationToken cancellationToken)
     {
         await access.RequireAsync(organizationId, userId, Role.Viewer, cancellationToken);
         var size = Math.Clamp(limit ?? DefaultPageSize, 1, MaxPageSize);
@@ -32,6 +33,11 @@ public sealed class IncidentService(
             "resolved" => query.Where(i => i.ResolvedAt != null),
             _ => query,
         };
+        if (monitorId is not null)
+        {
+            query = query.Where(i => i.MonitorId == monitorId);
+        }
+
         if (before is not null)
         {
             query = query.Where(i => i.StartedAt < before);

@@ -12,8 +12,8 @@ public static class IncidentEndpoints
     {
         var inOrg = routes.MapGroup("/api/orgs/{orgId:guid}").WithTags("Incidents").RequireAuthorization();
 
-        inOrg.MapGet("/incidents", async (Guid orgId, string? state, DateTimeOffset? before, int? limit, ClaimsPrincipal user, IncidentService service, CancellationToken ct) =>
-            TypedResults.Ok(await service.ListAsync(orgId, user.Id(), state, before, limit, ct)));
+        inOrg.MapGet("/incidents", async (Guid orgId, string? state, DateTimeOffset? before, int? limit, Guid? monitorId, ClaimsPrincipal user, IncidentService service, CancellationToken ct) =>
+            TypedResults.Ok(await service.ListAsync(orgId, user.Id(), state, before, limit, monitorId, ct)));
 
         inOrg.MapPost("/incidents", async (Guid orgId, ManualIncidentInput input, ClaimsPrincipal user, IncidentService service, CancellationToken ct) =>
         {

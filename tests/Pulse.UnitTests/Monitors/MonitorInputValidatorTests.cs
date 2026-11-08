@@ -93,6 +93,10 @@ public class MonitorInputValidatorTests
         Run(Valid with { RecoveryThreshold = threshold }).Errors.Should().Contain(e => e.PropertyName == "RecoveryThreshold");
     }
 
+    [Fact]
+    public void A_keyword_needs_a_response_body_so_head_cannot_use_one() =>
+        Run(Valid with { Method = CheckMethod.Head, Keyword = "ok" }).Errors.Should().Contain(e => e.PropertyName == "Keyword");
+
     [Theory]
     [InlineData("Host")]
     [InlineData("content-length")]

@@ -41,9 +41,11 @@ public sealed partial class MonitorInputValidator : AbstractValidator<MonitorInp
             .Must(codes => string.IsNullOrWhiteSpace(codes) || ExpectedCodes.Parse(codes) is not null)
             .WithMessage("Use status codes like 200-299 or 200, 301");
 
-        RuleFor(x => x.Keyword)
+        RuleFor(x => x.Keyword).Cascade(CascadeMode.Stop)
             .Must(keyword => keyword is null || keyword.Length <= HttpMonitor.KeywordMaxLength)
-            .WithMessage($"Use {HttpMonitor.KeywordMaxLength} characters or fewer");
+            .WithMessage($"Use {HttpMonitor.KeywordMaxLength} characters or fewer")
+            .Must((input, keyword) => string.IsNullOrEmpty(keyword) || input.Method != CheckMethod.Head)
+            .WithMessage("A HEAD request has no body to search. Use GET or POST to check for a keyword");
 
         RuleFor(x => x.Headers).Custom((headers, context) =>
         {

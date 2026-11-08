@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Pulse.Application.Abstractions;
+using Pulse.Infrastructure.Checks;
 using Pulse.Infrastructure.Email;
 using Pulse.Infrastructure.Identity;
 using Pulse.Infrastructure.Monitoring;
@@ -57,6 +58,16 @@ public static class DependencyInjection
         services.AddScoped<ILiveEvents, PostgresLiveEvents>();
         services.AddScoped<CheckPartitions>();
 
+        return services;
+    }
+
+    /// <summary>What the worker adds on top: the HTTP checker and the engine that drives it.</summary>
+    public static IServiceCollection AddCheckEngine(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<CheckEngineOptions>(configuration.GetSection(CheckEngineOptions.Section));
+        services.AddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.AddSingleton<IHttpChecker, HttpChecker>();
+        services.AddSingleton<CheckEngine>();
         return services;
     }
 }

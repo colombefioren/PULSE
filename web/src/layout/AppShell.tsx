@@ -67,7 +67,7 @@ export function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar onOpenNav={() => setDrawerOpen(true)} />
           <main id="content" tabIndex={-1} className="flex-1 px-4 py-6 md:px-8">
-            <div className="mx-auto max-w-5xl">
+            <div className="max-w-5xl">
               <Outlet />
             </div>
           </main>

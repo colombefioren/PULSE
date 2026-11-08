@@ -156,7 +156,7 @@ describe('Landing', () => {
   it('leads with the value statement and the two ways in', async () => {
     renderAt('/')
 
-    expect(await screen.findByRole('heading', { level: 1, name: /Know\s*first/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /Know when it breaks/ })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /Try the demo/ }).length).toBeGreaterThan(0)
     expect(screen.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/signup')
   })

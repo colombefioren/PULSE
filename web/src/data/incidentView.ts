@@ -1,4 +1,5 @@
 import type {
+  ApiAffectedComponent,
   ApiAlertKind,
   ApiChannelType,
   ApiDelivery,
@@ -59,6 +60,8 @@ export interface IncidentDetailView {
   incident: IncidentView
   updates: UpdateView[]
   alerts: DeliveryView[]
+  /** The status page components the incident is shown on. */
+  components: ApiAffectedComponent[]
 }
 
 export type ChannelType = 'email' | 'discord' | 'slack' | 'webhook'
@@ -145,6 +148,7 @@ export const detailFromApi = (detail: ApiIncidentDetail): IncidentDetailView => 
     at: Date.parse(u.createdAt),
   })),
   alerts: detail.alerts.map(deliveryFromApi),
+  components: detail.components ?? [],
 })
 
 /** Turns the demo workspace's incident into the shared shape. */
@@ -184,7 +188,7 @@ export function detailFromDemo(incident: Incident, monitorName: string | null): 
     })
     updates.sort((a, b) => a.at - b.at)
   }
-  return { incident: incidentFromDemo(incident, monitorName), updates, alerts: [] }
+  return { incident: incidentFromDemo(incident, monitorName), updates, alerts: [], components: [] }
 }
 
 export const SEVERITY_LABEL: Record<Severity, string> = {

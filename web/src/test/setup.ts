@@ -6,6 +6,7 @@ import { leaveDemo } from '@/session/demoMode'
 
 // Tests never open a real socket; the live layer is exercised through its pure `apply` functions.
 vi.mock('@/live/connection', () => ({ connectLive: vi.fn().mockResolvedValue({ stop: vi.fn() }) }))
+vi.mock('@/live/status', () => ({ connectStatus: vi.fn().mockResolvedValue({ stop: vi.fn() }) }))
 
 // jsdom has no matchMedia; tests start from a light system theme.
 Object.defineProperty(window, 'matchMedia', {

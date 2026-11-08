@@ -152,6 +152,8 @@ export interface DeclareInput {
   status: IncidentStatus
   message: string
   monitorId?: string | null
+  /** Status page components the incident is shown on. */
+  componentIds?: string[]
 }
 
 export function useDeclareIncident() {
@@ -166,6 +168,7 @@ export function useDeclareIncident() {
         status: API_STATUS[input.status],
         message: input.message,
         monitorId: input.monitorId ?? null,
+        componentIds: input.componentIds ?? [],
       }
       return api.post<ApiIncidentDetail>(`/api/orgs/${orgId}/incidents`, body)
     },

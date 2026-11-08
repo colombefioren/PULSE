@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
+import { demo } from '@/data/demo'
 
 // jsdom has no matchMedia; tests start from a light system theme.
 Object.defineProperty(window, 'matchMedia', {
@@ -20,5 +21,6 @@ Object.defineProperty(window, 'matchMedia', {
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  demo.reset()
   delete document.documentElement.dataset.theme
 })

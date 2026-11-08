@@ -49,6 +49,14 @@ export function useSeries(id: string, range: ChartRange) {
   })
 }
 
+export function useGlobalSeries(range: ChartRange) {
+  return useQuery<SeriesPoint[]>({
+    queryKey: ['series', 'global', range],
+    queryFn: () => demo.globalSeries(range),
+    staleTime: 60_000,
+  })
+}
+
 export function useIncidents() {
   return useQuery<Incident[]>({
     queryKey: keys.incidents,
@@ -73,6 +81,31 @@ export function useStatusPage(slug: string) {
     queryKey: keys.statusPage(slug),
     queryFn: () => demo.statusPage(slug) ?? null,
     refetchInterval: LIVE_MS,
+  })
+}
+
+/** Pause or resume a monitor. The row flips immediately and rolls back if the call fails. */
+export function useSetMonitorPaused() {
+  const client = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, paused }: { id: string; paused: boolean }) => demo.setPaused(id, paused),
+    onMutate: async ({ id, paused }) => {
+      await client.cancelQueries({ queryKey: keys.monitors })
+      const previous = client.getQueryData<Monitor[]>(keys.monitors)
+      client.setQueryData<Monitor[]>(keys.monitors, (list) =>
+        list?.map((monitor) => (monitor.id === id ? { ...monitor, status: paused ? 'paused' : 'up' } : monitor)),
+      )
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) client.setQueryData(keys.monitors, context.previous)
+    },
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: keys.monitors })
+      void client.invalidateQueries({ queryKey: ['monitor'] })
+      void client.invalidateQueries({ queryKey: keys.summary })
+    },
   })
 }
 

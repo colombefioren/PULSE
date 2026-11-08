@@ -177,12 +177,25 @@ function buildIncidents(now: number): Incident[] {
 }
 
 class DemoBackend {
-  private readonly bootedAt = Date.now()
-  private monitors: Monitor[]
-  private incidents: Incident[]
+  private bootedAt = Date.now()
+  private monitors!: Monitor[]
+  private incidents!: Incident[]
   private ticks = 0
+  private lastTickAt = 0
 
   constructor() {
+    this.init()
+  }
+
+  /** Back to the starting state. Tests use this so one test never leaks into the next. */
+  reset(): void {
+    this.init()
+  }
+
+  private init(): void {
+    this.bootedAt = Date.now()
+    this.ticks = 0
+    this.lastTickAt = 0
     const now = this.bootedAt
     this.incidents = buildIncidents(now)
     this.monitors = BLUEPRINTS.map((bp) => {
@@ -191,7 +204,7 @@ class DemoBackend {
       const days = buildDays(bp, now)
       const avg = (n: number) => {
         const slice = days.slice(-n).flatMap((d) => (d.uptimePct === null ? [] : [d.uptimePct]))
-        return slice.length ? Math.round((slice.reduce((a, b) => a + b, 0) / slice.length) * 10) / 10 : 100
+        return slice.length ? Math.round((slice.reduce((a, b) => a + b, 0) / slice.length) * 100) / 100 : 100
       }
       const s = summarize(spark)
       return {
@@ -227,8 +240,6 @@ class DemoBackend {
     })
   }
 
-  private lastTickAt = 0
-
   /** Runs a round of checks at most once per interval, however many screens ask. */
   tickIfDue(minGapMs = 5000): void {
     const now = Date.now()
@@ -248,6 +259,25 @@ class DemoBackend {
   series(id: string, range: ChartRange): SeriesPoint[] {
     const bp = BLUEPRINTS.find((b) => b.id === id)
     return bp ? buildSeries(bp, range, this.bootedAt) : []
+  }
+
+  /** Average response time across active monitors at each step; failed checks are left out of the average. */
+  globalSeries(range: ChartRange): SeriesPoint[] {
+    const all = BLUEPRINTS.filter((bp) => bp.status !== 'paused').map((bp) => buildSeries(bp, range, this.bootedAt))
+    const length = all[0]?.length ?? 0
+    return Array.from({ length }, (_, i) => {
+      const values = all.flatMap((series) => (series[i]?.ms == null ? [] : [series[i]!.ms as number]))
+      return { t: all[0]![i]!.t, ms: values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null }
+    })
+  }
+
+  setPaused(id: string, paused: boolean): Monitor | undefined {
+    this.monitors = this.monitors.map((monitor) => {
+      if (monitor.id !== id) return monitor
+      // Resuming a monitor that was down before it was paused starts it over as pending, like the real engine.
+      return { ...monitor, status: paused ? 'paused' : monitor.spark.at(-1)?.ms === null ? 'down' : 'up' }
+    })
+    return this.monitors.find((monitor) => monitor.id === id)
   }
 
   listIncidents(): Incident[] {

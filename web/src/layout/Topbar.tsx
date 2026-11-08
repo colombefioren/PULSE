@@ -1,4 +1,4 @@
-import { Menu } from 'lucide-react'
+import { Menu, Search } from 'lucide-react'
 import { Link, useMatches } from 'react-router'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Tip } from '@/components/Tip'
@@ -9,9 +9,12 @@ export interface RouteHandle {
 
 interface TopbarProps {
   onOpenNav: () => void
+  onOpenSearch: () => void
 }
 
-export function Topbar({ onOpenNav }: TopbarProps) {
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+
+export function Topbar({ onOpenNav, onOpenSearch }: TopbarProps) {
   const crumbs = useMatches().flatMap((match) => {
     const crumb = (match.handle as RouteHandle | undefined)?.crumb
     return crumb ? [{ crumb, pathname: match.pathname }] : []
@@ -50,6 +53,17 @@ export function Topbar({ onOpenNav }: TopbarProps) {
         </ol>
       </nav>
 
+      <button
+        type="button"
+        className="btn btn-ghost gap-2"
+        onClick={onOpenSearch}
+        aria-label="Search and commands"
+        aria-keyshortcuts="Control+K Meta+K"
+      >
+        <Search size={16} strokeWidth={1.5} aria-hidden />
+        <span className="hidden text-muted sm:inline">Search</span>
+        <kbd className="mono hidden rounded-md border border-border px-1.5 text-xs text-muted sm:inline">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+      </button>
       <ThemeToggle />
     </header>
   )

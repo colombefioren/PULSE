@@ -10,13 +10,13 @@ namespace Pulse.Infrastructure.Monitoring;
 /// clear message. A name that does not resolve yet is accepted: a monitor for a site that is down is still valid.
 /// Every check repeats the test against the address it actually connects to, because DNS can change later.
 /// </summary>
-public sealed class DnsUrlGuard : IMonitorUrlGuard
+public sealed class DnsUrlGuard(bool allowPrivate = false) : IMonitorUrlGuard
 {
     private static readonly TimeSpan LookupTimeout = TimeSpan.FromSeconds(3);
 
     public async Task<string?> CheckHostAsync(Uri uri, CancellationToken cancellationToken)
     {
-        if (IPAddress.TryParse(uri.Host.Trim('[', ']'), out _))
+        if (allowPrivate || IPAddress.TryParse(uri.Host.Trim('[', ']'), out _))
         {
             return null; // already judged by MonitorUrl
         }

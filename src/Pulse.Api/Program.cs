@@ -9,6 +9,7 @@ using Pulse.Api.Live;
 using Pulse.Api.Public;
 using Pulse.Application;
 using Pulse.Application.Common;
+using Pulse.Application.Demo;
 using Pulse.Infrastructure;
 using Pulse.Infrastructure.Persistence;
 using Scalar.AspNetCore;
@@ -39,6 +40,7 @@ try
     services.AddExceptionHandler<AppExceptionHandler>();
 
     services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.Section));
+    services.Configure<DemoOptions>(builder.Configuration.GetSection(DemoOptions.Section));
     services.AddApplication();
     services.AddInfrastructure(builder.Configuration);
 
@@ -150,6 +152,8 @@ try
     app.MapAlertEndpoints();
     app.MapStatusPageEndpoints();
     app.MapPublicStatusEndpoints();
+    app.MapBadgeEndpoints();
+    app.MapDemoEndpoints();
     app.MapHub<LiveHub>(LiveHub.Path);
     app.MapHub<StatusHub>(StatusHub.Path);
 

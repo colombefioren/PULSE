@@ -16,7 +16,7 @@ namespace Pulse.Infrastructure.Alerts;
 /// slow network call. A failed send is retried after 1 minute, 5, 15 and 60, then given up on. A worker that dies
 /// mid-send leaves a lease that expires, after which the message is tried again: delivery is at least once.
 /// </summary>
-public sealed class OutboxDispatcher(IServiceScopeFactory scopes, IAlertTransport transport, TimeProvider clock, ILogger<OutboxDispatcher> logger)
+public sealed class OutboxDispatcher(IServiceScopeFactory scopes, TimeProvider clock, ILogger<OutboxDispatcher> logger)
 {
     public const int Batch = 20;
     public static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(5);
@@ -127,6 +127,8 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopes, IAlertTranspor
         try
         {
             var config = AlertJson.Deserialize<AlertConfig>(protector.Unprotect(channel.ProtectedConfig));
+            // Resolved per message: the transport sends mail through a scoped sender, so it must not outlive its scope.
+            var transport = scope.ServiceProvider.GetRequiredService<IAlertTransport>();
             await transport.SendAsync(channel.Type, config, AlertJson.Deserialize<AlertPayload>(delivery.Payload), delivery.Id, cancellationToken);
 
             var now = clock.GetUtcNow();

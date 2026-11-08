@@ -35,4 +35,10 @@ public interface IIdentityService
     Task<SignInOutcome> SignInAsync(string email, string password, bool remember);
 
     Task SignOutAsync();
+
+    /// <summary>Finds the user or creates one with a confirmed address and a password nobody knows, for the shared demo account.</summary>
+    Task<UserInfo> EnsureConfirmedUserAsync(string email, string name, CancellationToken cancellationToken);
+
+    /// <summary>Opens a session for a user without a password. Only the demo account is ever signed in this way.</summary>
+    Task SignInUserAsync(Guid userId);
 }

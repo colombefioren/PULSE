@@ -55,8 +55,9 @@ export function ResponseChart({ series, range, height = 260, subject }: Response
   }
 
   const first = series[0]
-  const middle = series[Math.floor(series.length / 2)]
-  const last = series[series.length - 1]
+  // With only a couple of points the middle one is the first or last, and a second label would print over it.
+  const middle = series.length > 2 ? series[Math.floor(series.length / 2)] : undefined
+  const last = series.length > 1 ? series[series.length - 1] : undefined
 
   return (
     <div ref={ref} className="relative w-full">

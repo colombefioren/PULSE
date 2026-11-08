@@ -65,6 +65,8 @@ export interface MonitorInput {
   headers: Record<string, string>
   failureThreshold: number
   recoveryThreshold: number
+  /** Whether anyone with the link can see this monitor's 30-day uptime as an image. */
+  badgeEnabled?: boolean
   /** Channels that get an alert when this monitor goes down or recovers. */
   alertChannelIds?: string[]
 }
@@ -106,7 +108,7 @@ export interface ApiMonitorStats {
   p50Ms: number | null
   p95Ms: number | null
   p99Ms: number | null
-  uptime: { last24Hours: number | null; last7Days: number | null; last30Days: number | null }
+  uptime: { last24Hours: number | null; last7Days: number | null; last30Days: number | null; last90Days: number | null }
   series: ApiSeriesPoint[]
 }
 

@@ -6,17 +6,22 @@ import type { Invite, InvitePreview, Me, Member, OrgDetail, OrgSummary, Register
 export const ME_KEY = ['me'] as const
 
 /** The signed-in user, or null when nobody is. A 401 is an answer here, not an error. */
+export async function fetchMe(): Promise<Me | null> {
+  try {
+    return await api.get<Me>('/api/auth/me')
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) return null
+    throw error
+  }
+}
+
+/** The shared demo account on a server that has one. Its team is read-only and watches real public websites. */
+export const DEMO_ACCOUNT_EMAIL = 'demo@pulse.invalid'
+
 export function useMe() {
   return useQuery<Me | null>({
     queryKey: ME_KEY,
-    queryFn: async () => {
-      try {
-        return await api.get<Me>('/api/auth/me')
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return null
-        throw error
-      }
-    },
+    queryFn: fetchMe,
     retry: false,
     staleTime: 60_000,
   })

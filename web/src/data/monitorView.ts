@@ -20,6 +20,8 @@ export interface MonitorView {
   recoveryThreshold: number
   /** Alert channels that hear about this monitor's incidents. */
   alertChannelIds: string[]
+  /** Whether the public uptime badge is switched on. */
+  badgeEnabled: boolean
   status: MonitorStatus
   lastResponseMs: number | null
   /** Epoch ms. */
@@ -40,6 +42,7 @@ export interface StatsView {
   uptime24h: number | null
   uptime7d: number | null
   uptime30d: number | null
+  uptime90d: number | null
   series: SeriesPoint[]
 }
 
@@ -78,6 +81,7 @@ export function monitorFromApi(monitor: ApiMonitor, uptime24h: number | null = n
     failureThreshold: monitor.failureThreshold,
     recoveryThreshold: monitor.recoveryThreshold,
     alertChannelIds: monitor.alertChannelIds ?? [],
+    badgeEnabled: monitor.badgeEnabled ?? false,
     status: STATUS[monitor.state],
     lastResponseMs: monitor.lastResponseMs,
     lastCheckedAt: monitor.lastCheckedAt ? Date.parse(monitor.lastCheckedAt) : null,
@@ -101,6 +105,7 @@ export function statsFromApi(stats: ApiMonitorStats): StatsView {
     uptime24h: stats.uptime.last24Hours,
     uptime7d: stats.uptime.last7Days,
     uptime30d: stats.uptime.last30Days,
+    uptime90d: stats.uptime.last90Days ?? null,
     series: stats.series.map((point) => ({ t: Date.parse(point.at), ms: point.avgMs })),
   }
 }
@@ -128,6 +133,7 @@ export function monitorFromDemo(monitor: Monitor): MonitorView {
     failureThreshold: 3,
     recoveryThreshold: 2,
     alertChannelIds: [],
+    badgeEnabled: false,
     status: monitor.status,
     lastResponseMs: monitor.lastResponseMs,
     lastCheckedAt: monitor.status === 'paused' ? null : monitor.lastCheckedAt,
@@ -149,6 +155,7 @@ export const NEW_MONITOR: MonitorInput = {
   headers: {},
   failureThreshold: 3,
   recoveryThreshold: 2,
+  badgeEnabled: false,
 }
 
 export function inputFromView(view: MonitorView): MonitorInput {
@@ -163,6 +170,7 @@ export function inputFromView(view: MonitorView): MonitorInput {
     headers: view.headers,
     failureThreshold: view.failureThreshold,
     recoveryThreshold: view.recoveryThreshold,
+    badgeEnabled: view.badgeEnabled,
     alertChannelIds: view.alertChannelIds,
   }
 }

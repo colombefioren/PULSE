@@ -43,9 +43,13 @@ public interface IAddressPolicy
     bool IsAllowed(IPAddress address);
 }
 
-public sealed class PublicAddressPolicy : IAddressPolicy
+/// <summary>
+/// Public internet addresses only. <paramref name="allowPrivate"/> lifts that for the end-to-end test stack, where the
+/// thing being monitored is a container next door; it is off unless <c>Checks:AllowPrivateTargets</c> is set.
+/// </summary>
+public sealed class PublicAddressPolicy(bool allowPrivate = false) : IAddressPolicy
 {
-    public bool IsAllowed(IPAddress address) => NetworkPolicy.IsPublic(address);
+    public bool IsAllowed(IPAddress address) => allowPrivate || NetworkPolicy.IsPublic(address);
 }
 
 /// <summary>Thrown from the connect step when a host resolves to an address the policy refuses.</summary>

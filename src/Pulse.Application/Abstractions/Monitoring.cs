@@ -19,6 +19,12 @@ public interface IMonitorStats
 
     Task<IReadOnlyList<SeriesPointDto>> SeriesAsync(Guid monitorId, DateTimeOffset since, TimeSpan bucket, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Checks and passes over the last 90 UTC days, read from the daily totals for older days and from the raw results for
+    /// yesterday and today, so it is right whether or not the rollup job has run since.
+    /// </summary>
+    Task<RangeStats> NinetyDaysAsync(Guid monitorId, DateTimeOffset now, CancellationToken cancellationToken);
+
     /// <summary>Checks and passes across every monitor of the organization since <paramref name="since"/>, plus the average response time of passing checks.</summary>
     Task<RangeStats> OrganizationTotalsAsync(Guid organizationId, DateTimeOffset since, CancellationToken cancellationToken);
 

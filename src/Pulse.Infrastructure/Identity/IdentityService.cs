@@ -100,6 +100,29 @@ public sealed class IdentityService(UserManager<ApplicationUser> users, SignInMa
 
     public Task SignOutAsync() => signIn.SignOutAsync();
 
+    public async Task<UserInfo> EnsureConfirmedUserAsync(string email, string name, CancellationToken cancellationToken)
+    {
+        if (await users.FindByEmailAsync(email) is { } existing)
+        {
+            return ToInfo(existing);
+        }
+
+        var user = new ApplicationUser { Id = Ids.New(), UserName = email, Email = email, Name = name, EmailConfirmed = true };
+        // Long and random, and thrown away: nobody signs in to this account with a password.
+        var password = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48)) + "aA1!";
+        var result = await users.CreateAsync(user, password);
+        if (result.Succeeded)
+        {
+            return ToInfo(user);
+        }
+
+        // Another instance created it a moment ago.
+        return await users.FindByEmailAsync(email) is { } raced ? ToInfo(raced) : throw PasswordRejected(result);
+    }
+
+    public async Task SignInUserAsync(Guid userId) =>
+        await signIn.SignInAsync(await Require(userId), isPersistent: false);
+
     private async Task<ApplicationUser> Require(Guid userId) =>
         await users.FindByIdAsync(userId.ToString()) ?? throw new InvalidOperationException($"User {userId} does not exist.");
 

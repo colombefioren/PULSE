@@ -80,7 +80,9 @@ async function send<T>(method: string, path: string, payload: Payload, retried =
 
   let response: Response
   try {
-    response = await fetch(path, { method, headers, body })
+    // The public status page is served with a short Cache-Control for shared caches. A live update must not be answered
+    // from this browser's own copy of the page it is replacing, so reads always go back to the server.
+    response = await fetch(path, { method, headers, body, cache: 'no-cache' })
   } catch {
     throw new ApiError(0, 'network', 'Could not reach the server. Check your connection and try again.')
   }

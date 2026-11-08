@@ -29,6 +29,9 @@ public static class DependencyInjection
             .UseSnakeCaseNamingConvention());
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<PulseDbContext>());
 
+        // The sign-in manager needs the authentication services even in the worker, which never signs anyone in.
+        services.AddAuthenticationCore();
+
         services
             .AddIdentityCore<ApplicationUser>(options =>
             {
@@ -55,14 +58,18 @@ public static class DependencyInjection
         services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.Section));
         services.AddScoped<IEmailSender, SmtpEmailSender>();
 
-        services.AddSingleton<IMonitorUrlGuard, DnsUrlGuard>();
+        // Only the end-to-end stack turns this on, so its test target can live on the private network.
+        var allowPrivateTargets = configuration.GetValue("Checks:AllowPrivateTargets", false);
+        services.AddSingleton<IMonitorUrlGuard>(_ => new DnsUrlGuard(allowPrivateTargets));
         services.AddScoped<IMonitorStats, MonitorStats>();
         services.AddScoped<ILiveEvents, PostgresLiveEvents>();
         services.AddScoped<CheckPartitions>();
         services.AddScoped<DailyRollup>();
+        services.AddScoped<HourlyRollup>();
+        services.AddScoped<CheckRetention>();
 
         // Alerts: the API sends test alerts and the worker sends real ones, so both get the same transport.
-        services.TryAddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.TryAddSingleton<IAddressPolicy>(_ => new PublicAddressPolicy(allowPrivateTargets));
         services.AddSingleton<AlertHttp>();
         services.AddScoped<IAlertTransport, AlertTransport>();
         services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
@@ -75,7 +82,7 @@ public static class DependencyInjection
     public static IServiceCollection AddCheckEngine(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<CheckEngineOptions>(configuration.GetSection(CheckEngineOptions.Section));
-        services.TryAddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.TryAddSingleton<IAddressPolicy>(_ => new PublicAddressPolicy(configuration.GetValue("Checks:AllowPrivateTargets", false)));
         services.AddSingleton<IHttpChecker, HttpChecker>();
         services.AddSingleton<CheckEngine>();
         services.AddSingleton<OutboxDispatcher>();

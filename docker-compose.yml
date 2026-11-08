@@ -41,6 +41,8 @@ services:
       App__PublicUrl: ${PUBLIC_URL:-http://localhost:8080}
       Smtp__Host: mailpit
       Smtp__Port: "1025"
+      # "Try the demo" signs visitors in to a shared read-only team that watches real public sites. Off by default.
+      Demo__Enabled: ${DEMO_ENABLED:-false}
     ports:
       - "${API_PORT:-5080}:8080"
     depends_on:

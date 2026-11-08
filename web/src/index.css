@@ -1,1 +1,297 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Geist";
+  src: url("../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/*
+ * Design tokens.
+ * Light is the default; dark is applied with data-theme="dark" (set before first paint by the
+ * script in index.html, following the system setting until the user picks a theme).
+ * Dark is tuned separately from light: surfaces step up in lightness, borders are brighter than
+ * the surfaces they separate, and status colors are lighter to hold contrast.
+ */
+:root {
+  --brand: #fac303;
+  --brand-hover: #e6b100;
+  --brand-ink: #0b0b0c; /* text and icons placed on a brand fill */
+
+  --bg: #f8f7f5;
+  --surface: #ffffff;
+  --surface-2: #f2f1ee;
+  --surface-hover: #f2f1ee;
+  --border: #e4e2dd;
+  --border-strong: #cfccc5;
+  --text: #0b0b0c;
+  --text-muted: #5c5a54;
+  --text-subtle: #6b6962;
+  --overlay-shadow: 0 8px 24px rgb(11 11 12 / 12%), 0 0 0 1px rgb(11 11 12 / 6%);
+  --ring-outer: #0b0b0c;
+
+  --status-up: #15803d;
+  --status-down: #b91c1c;
+  --status-degraded: #c2410c;
+  --status-maintenance: #1d4ed8;
+  --status-paused: #6b6962;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --brand-hover: #ffd23d;
+
+  --bg: #0b0b0c;
+  --surface: #131314;
+  --surface-2: #1a1a1c;
+  --surface-hover: #1f1f21;
+  --border: #272729;
+  --border-strong: #38383b;
+  --text: #f3f2ef;
+  --text-muted: #a5a29b;
+  --text-subtle: #8c8982;
+  --overlay-shadow: 0 8px 24px rgb(0 0 0 / 55%), 0 0 0 1px rgb(255 255 255 / 8%);
+  --ring-outer: transparent;
+
+  --status-up: #4ade80;
+  --status-down: #f87171;
+  --status-degraded: #fb923c;
+  --status-maintenance: #60a5fa;
+  --status-paused: #8c8982;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Type scale: 12 / 13 / 14 / 16 / 20 / 24 / 32 */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-md: 16px;
+  --text-md--line-height: 24px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+  --text-xl: 24px;
+  --text-xl--line-height: 32px;
+  --text-2xl: 32px;
+  --text-2xl--line-height: 40px;
+
+  --radius-control: 6px;
+  --radius-card: 8px;
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--text);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--text-subtle);
+
+  --color-up: var(--status-up);
+  --color-down: var(--status-down);
+  --color-degraded: var(--status-degraded);
+  --color-maintenance: var(--status-maintenance);
+  --color-paused: var(--status-paused);
+
+  --shadow-overlay: var(--overlay-shadow);
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 20px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Visible on both themes: brand band next to the control, ink band outside it on light. */
+  :focus-visible {
+    outline: 2px solid var(--ring-outer);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--brand);
+    border-radius: var(--radius-control);
+  }
+
+  ::selection {
+    background: var(--brand);
+    color: var(--brand-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Monospace with tabular figures: metrics, timestamps, URLs and IDs. */
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease;
+  }
+
+  .btn:hover {
+    background: var(--surface-hover);
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .btn-primary {
+    border-color: transparent;
+    background: var(--brand);
+    color: var(--brand-ink);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-hover);
+  }
+
+  .btn-ghost {
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .btn-icon {
+    width: 32px;
+    padding: 0;
+  }
+
+  .input {
+    height: 32px;
+    width: 100%;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+  }
+
+  .input::placeholder {
+    color: var(--text-subtle);
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+  }
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  /* Status dot: color is the only thing that carries state, so pair it with a text label. */
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--status-paused);
+  }
+
+  .status-dot[data-status="up"] {
+    background: var(--status-up);
+  }
+
+  .status-dot[data-status="down"] {
+    background: var(--status-down);
+  }
+
+  .status-dot[data-status="degraded"] {
+    background: var(--status-degraded);
+  }
+
+  .status-dot[data-status="maintenance"] {
+    background: var(--status-maintenance);
+  }
+
+  /* Skeletons match the final layout; no spinners. */
+  .skeleton {
+    border-radius: var(--radius-control);
+    background: linear-gradient(90deg, var(--surface-2), var(--surface-hover), var(--surface-2));
+    background-size: 200% 100%;
+    animation: skeleton 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeleton {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}

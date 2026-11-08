@@ -1,0 +1,86 @@
+name: Deploy preprod
+
+# Every merge to preprod runs CI, then publishes the images for the preprod environment.
+# Database migrations are a separate step and never run on application startup.
+
+on:
+  push:
+    branches: [preprod]
+
+concurrency:
+  group: deploy-preprod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish ${{ matrix.image }}
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: .
+            dockerfile: src/Pulse.Api/Dockerfile
+          - image: worker
+            context: .
+            dockerfile: src/Pulse.Worker/Dockerfile
+          - image: web
+            context: web
+            dockerfile: web/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/pulse-${{ matrix.image }}:preprod
+            ghcr.io/${{ github.repository_owner }}/pulse-${{ matrix.image }}:preprod-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+  # Applies EF Core migrations to the preprod database as its own step, after the images exist.
+  # Enabled once a preprod database and its connection secret are configured (docs/decisions.md).
+  migrate:
+    name: Migrate preprod database
+    needs: publish
+    if: ${{ vars.PREPROD_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: preprod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Apply migrations
+        env:
+          ConnectionStrings__Default: ${{ secrets.PREPROD_DATABASE_URL }}
+        run: |
+          if ls src/Pulse.Infrastructure/Migrations/*.cs >/dev/null 2>&1; then
+            dotnet tool restore
+            dotnet ef database update --project src/Pulse.Infrastructure --startup-project src/Pulse.Api
+          else
+            echo "No migrations yet."
+          fi

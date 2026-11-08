@@ -1,0 +1,49 @@
+version: 2
+
+# Dependabot opens its PRs against preprod, the integration branch.
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    target-branch: preprod
+    schedule:
+      interval: weekly
+    groups:
+      microsoft:
+        patterns: ["Microsoft.*", "System.*"]
+      testing:
+        patterns: ["xunit*", "FluentAssertions", "Testcontainers*", "coverlet*"]
+
+  - package-ecosystem: npm
+    directory: /web
+    target-branch: preprod
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns: ["react", "react-dom", "@types/react*"]
+      tooling:
+        patterns: ["eslint*", "@eslint/*", "typescript-eslint", "vitest", "@vitest/*", "@testing-library/*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: preprod
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /web
+    target-branch: preprod
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/Pulse.Api
+    target-branch: preprod
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /src/Pulse.Worker
+    target-branch: preprod
+    schedule:
+      interval: weekly

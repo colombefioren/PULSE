@@ -3,6 +3,21 @@
 All notable changes to Pulse are recorded here. The release workflow reads the version from the first
 `## [x.y.z]` heading, so every promotion from `preprod` to `prod` adds an entry at the top.
 
+## [Unreleased]
+
+Design refresh.
+
+### Added
+- Dashboard with live counts, open incidents you can acknowledge, a response-time graph and three uptime gauges.
+- Public status page with a banner, grouped components, 90-day uptime bars, incident timelines, a response-time graph and an email subscribe form.
+- Monitor detail page with uptime figures and a response-time chart.
+- Sign in and sign up pages with inline validation.
+- Cinematic landing page with a scroll-driven card tunnel and the live status page embedded.
+- A seeded demo workspace behind query hooks, so the UI works before the API exists.
+
+### Changed
+- Restyled the app around a mauve canvas, cream shell, aubergine sidebar and pill controls.
+
 ## [0.1.0] - 2026-11-08
 
 Foundations (milestone M0).

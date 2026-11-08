@@ -2,6 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { useCallback, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router'
+import { useLive } from '@/live/useLive'
 import { Sidebar } from './Sidebar'
 import { useGoShortcuts } from './shortcuts'
 import { Topbar } from './Topbar'
@@ -21,6 +22,7 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  useLive()
   useGoShortcuts(useCallback((to: string) => void navigate(to), [navigate]))
 
   const toggleCollapsed = () => {

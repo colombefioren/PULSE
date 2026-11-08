@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Pulse.Application.Accounts;
+using Pulse.Application.Monitors;
 using Pulse.Application.Organizations;
 
 namespace Pulse.Application;
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<AccountService>();
         services.AddScoped<OrganizationService>();
         services.AddScoped<InviteService>();
+        services.AddScoped<MonitorService>();
         return services;
     }
 }

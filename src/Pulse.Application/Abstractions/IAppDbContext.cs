@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 
 namespace Pulse.Application.Abstractions;
@@ -10,6 +11,10 @@ public interface IAppDbContext
     DbSet<Membership> Memberships { get; }
 
     DbSet<Invite> Invites { get; }
+
+    DbSet<HttpMonitor> Monitors { get; }
+
+    DbSet<CheckResult> CheckResults { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

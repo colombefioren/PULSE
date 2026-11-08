@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Application.Abstractions;
+using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 using Pulse.Infrastructure.Identity;
 
@@ -16,6 +17,10 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
     public DbSet<Membership> Memberships => Set<Membership>();
 
     public DbSet<Invite> Invites => Set<Invite>();
+
+    public DbSet<HttpMonitor> Monitors => Set<HttpMonitor>();
+
+    public DbSet<CheckResult> CheckResults => Set<CheckResult>();
 
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

@@ -33,6 +33,17 @@ describe('AppShell', () => {
     expect(within(nav).getByRole('link', { name: 'Monitors' })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('styles only the current sidebar link as selected, with its layout classes intact', async () => {
+    renderAt('/alerts')
+
+    const nav = await screen.findByRole('navigation', { name: 'Main' })
+    const alerts = within(nav).getByRole('link', { name: 'Alerts' })
+
+    expect(alerts).toHaveClass('flex', 'items-center', 'bg-brand')
+    expect(within(nav).getByRole('link', { name: 'Monitors' })).not.toHaveClass('bg-brand')
+    expect(within(nav).getByRole('link', { name: 'Monitors' })).toHaveClass('flex', 'items-center')
+  })
+
   it('shows breadcrumbs for the current page', async () => {
     renderAt('/incidents')
 

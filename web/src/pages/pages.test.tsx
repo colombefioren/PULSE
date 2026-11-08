@@ -109,8 +109,18 @@ describe('Incidents', () => {
     renderAt('/incidents')
 
     expect(await screen.findByRole('heading', { name: 'Open (1)' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Resolved (3)' })).toBeInTheDocument()
-    expect(screen.getByText('No failed checks for an hour. Resolved.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Resolved (3)' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Auth service is failing health checks' })).toBeInTheDocument()
+  })
+
+  it('opens an incident to show its timeline', async () => {
+    const user = userEvent.setup()
+    renderAt('/incidents')
+
+    await user.click(await screen.findByRole('link', { name: 'Auth service is failing health checks' }))
+
+    expect(await screen.findByRole('heading', { name: 'Auth service is failing health checks', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Timeline' })).toHaveTextContent('Three consecutive checks failed')
   })
 })
 

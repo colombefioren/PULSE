@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Pulse.Application.Abstractions;
+using Pulse.Application.Incidents;
 using Pulse.Domain.Monitors;
 using Pulse.Infrastructure.Monitoring;
 using Pulse.Infrastructure.Persistence;
@@ -189,6 +190,11 @@ public sealed class CheckEngine
             db.CheckResults.Add(new CheckResult(monitor.Id, now, outcome));
             var change = monitor.Apply(outcome, now);
 
+            // A state change may open or resolve an incident; its alerts are staged here and saved with the result.
+            IncidentChange? incident = change is null
+                ? null
+                : await scope.ServiceProvider.GetRequiredService<IncidentWorkflow>().ApplyAsync(monitor, change, now, cancellationToken);
+
             try
             {
                 await db.SaveChangesAsync(cancellationToken);
@@ -204,12 +210,12 @@ public sealed class CheckEngine
                 continue;
             }
 
-            await PublishAsync(scope.ServiceProvider.GetRequiredService<ILiveEvents>(), monitor, outcome, now, change, cancellationToken);
+            await PublishAsync(scope.ServiceProvider.GetRequiredService<ILiveEvents>(), monitor, outcome, now, change, incident, cancellationToken);
             return;
         }
     }
 
-    private async Task PublishAsync(ILiveEvents events, HttpMonitor monitor, CheckOutcome outcome, DateTimeOffset at, StateChange? change, CancellationToken cancellationToken)
+    private async Task PublishAsync(ILiveEvents events, HttpMonitor monitor, CheckOutcome outcome, DateTimeOffset at, StateChange? change, IncidentChange? incident, CancellationToken cancellationToken)
     {
         try
         {
@@ -240,6 +246,11 @@ public sealed class CheckEngine
                         at,
                     }),
                     cancellationToken);
+            }
+
+            if (incident is not null)
+            {
+                await events.PublishAsync(new LiveEvent(incident.Type, monitor.OrganizationId, IncidentEvents.Data(incident.Incident)), cancellationToken);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

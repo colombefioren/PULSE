@@ -18,6 +18,8 @@ export interface MonitorView {
   headers: Record<string, string>
   failureThreshold: number
   recoveryThreshold: number
+  /** Alert channels that hear about this monitor's incidents. */
+  alertChannelIds: string[]
   status: MonitorStatus
   lastResponseMs: number | null
   /** Epoch ms. */
@@ -75,6 +77,7 @@ export function monitorFromApi(monitor: ApiMonitor, uptime24h: number | null = n
     headers: monitor.headers,
     failureThreshold: monitor.failureThreshold,
     recoveryThreshold: monitor.recoveryThreshold,
+    alertChannelIds: monitor.alertChannelIds ?? [],
     status: STATUS[monitor.state],
     lastResponseMs: monitor.lastResponseMs,
     lastCheckedAt: monitor.lastCheckedAt ? Date.parse(monitor.lastCheckedAt) : null,
@@ -124,6 +127,7 @@ export function monitorFromDemo(monitor: Monitor): MonitorView {
     headers: {},
     failureThreshold: 3,
     recoveryThreshold: 2,
+    alertChannelIds: [],
     status: monitor.status,
     lastResponseMs: monitor.lastResponseMs,
     lastCheckedAt: monitor.status === 'paused' ? null : monitor.lastCheckedAt,
@@ -159,6 +163,7 @@ export function inputFromView(view: MonitorView): MonitorInput {
     headers: view.headers,
     failureThreshold: view.failureThreshold,
     recoveryThreshold: view.recoveryThreshold,
+    alertChannelIds: view.alertChannelIds,
   }
 }
 

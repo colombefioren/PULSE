@@ -17,7 +17,8 @@ public sealed record MonitorInput(
     Dictionary<string, string>? Headers = null,
     int FailureThreshold = HttpMonitor.DefaultFailureThreshold,
     int RecoveryThreshold = HttpMonitor.DefaultRecoveryThreshold,
-    bool BadgeEnabled = false);
+    bool BadgeEnabled = false,
+    Guid[]? AlertChannelIds = null);
 
 public sealed record MonitorDto(
     Guid Id,
@@ -40,7 +41,8 @@ public sealed record MonitorDto(
     CheckErrorType? LastErrorType,
     string? LastErrorMessage,
     bool BadgeEnabled,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<Guid> AlertChannelIds);
 
 /// <summary>A monitor as the list shows it: the monitor, its uptime over 24 hours and 24 hourly response averages.</summary>
 public sealed record MonitorListItemDto(MonitorDto Monitor, double? Uptime24h, IReadOnlyList<int?> Sparkline);

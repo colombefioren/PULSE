@@ -11,7 +11,8 @@ import { RangePicker } from '@/components/RangePicker'
 import { SeverityBadge } from '@/components/SeverityBadge'
 import { StatusPill } from '@/components/StatusPill'
 import { useDeleteMonitor, useMonitorAccess, useMonitorChecks, useMonitorStats, useMonitorView, useSetPaused } from '@/data/monitors'
-import { useIncidents, useNow } from '@/data/queries'
+import { useIncidentList } from '@/data/incidents'
+import { useNow } from '@/data/queries'
 import type { ChartRange } from '@/data/types'
 import { formatDuration, formatMs, relativeTime } from '@/lib/stats'
 
@@ -33,12 +34,12 @@ export default function MonitorDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const now = useNow()
-  const { demoMode, canEdit, canPause } = useMonitorAccess()
+  const { canEdit, canPause } = useMonitorAccess()
   const monitor = useMonitorView(id)
   const [range, setRange] = useState<ChartRange>('24h')
   const stats = useMonitorStats(id, range)
   const checks = useMonitorChecks(id)
-  const incidents = useIncidents()
+  const incidents = useIncidentList('all', id)
   const setPaused = useSetPaused()
   const remove = useDeleteMonitor()
   const [tab, setTab] = useState<Tab>('checks')
@@ -47,8 +48,8 @@ export default function MonitorDetailPage() {
 
   const series = stats.data?.series
   const recent = checks.data?.pages.flatMap((page) => page.items) ?? []
-  const mine = (incidents.data ?? []).filter((incident) => incident.monitorId === id)
-  const tabs: Tab[] = demoMode ? ['checks', 'incidents'] : ['checks']
+  const mine = incidents.data?.pages.flatMap((page) => page.items) ?? []
+  const tabs: Tab[] = ['checks', 'incidents']
 
   if (monitor.isError) {
     return (
@@ -166,12 +167,12 @@ export default function MonitorDetailPage() {
               onClick={() => setTab(value)}
               className={`h-7 rounded-full px-4 text-xs font-medium ${tab === value ? 'bg-panel text-panel-fg' : 'text-muted hover:text-fg'}`}
             >
-              {value === 'checks' ? 'Recent checks' : `Incidents (${mine.length})`}
+              {value === 'checks' ? 'Recent checks' : `Incidents (${mine.length}${incidents.hasNextPage ? '+' : ''})`}
             </button>
           ))}
         </div>
 
-        {tab === 'checks' || !demoMode ? (
+        {tab === 'checks' ? (
           <div role="tabpanel" id="panel-checks" aria-labelledby="tab-checks">
             {recent.length === 0 ? (
               <p className="text-base text-muted">{checks.isPending ? 'Loading checks…' : 'No checks to show.'}</p>
@@ -218,7 +219,9 @@ export default function MonitorDetailPage() {
                 {mine.map((incident) => (
                   <li key={incident.id} className="rounded-2xl bg-bg p-4">
                     <SeverityBadge severity={incident.severity} />
-                    <p className="mt-2 font-medium">{incident.title}</p>
+                    <p className="mt-2 font-medium">
+                      <Link to={`/incidents/${incident.id}`} className="hover:underline">{incident.title}</Link>
+                    </p>
                     <p className="mono mt-1 text-xs text-muted">
                       {new Date(incident.startedAt).toLocaleString('en-GB')} ·{' '}
                       {incident.resolvedAt

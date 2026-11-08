@@ -62,11 +62,9 @@ public sealed class HttpChecker : IHttpChecker, IDisposable
     public const string UserAgent = "Pulse/1.0 (+https://github.com/colombefioren/PULSE)";
 
     private readonly HttpClient _client;
-    private readonly IAddressPolicy _policy;
 
     public HttpChecker(IAddressPolicy policy)
     {
-        _policy = policy;
         _client = new HttpClient(
             new SocketsHttpHandler
             {
@@ -76,7 +74,7 @@ public sealed class HttpChecker : IHttpChecker, IDisposable
                 MaxAutomaticRedirections = 5,
                 AutomaticDecompression = DecompressionMethods.All,
                 PooledConnectionLifetime = TimeSpan.FromMinutes(2),
-                ConnectCallback = ConnectAsync,
+                ConnectCallback = (context, token) => GuardedConnect.ConnectAsync(policy, context, token),
             },
             disposeHandler: true)
         {
@@ -185,43 +183,6 @@ public sealed class HttpChecker : IHttpChecker, IDisposable
         {
             return Encoding.UTF8;
         }
-    }
-
-    private async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
-    {
-        var host = context.DnsEndPoint.Host;
-        var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal)
-            ? [literal]
-            : await Dns.GetHostAddressesAsync(host, cancellationToken);
-
-        if (addresses.Length == 0)
-        {
-            throw new SocketException((int)SocketError.HostNotFound);
-        }
-
-        // One private record among public ones is enough to refuse: a name must not be able to steer the check inward.
-        if (addresses.Any(address => !_policy.IsAllowed(address)))
-        {
-            throw new BlockedAddressException(host);
-        }
-
-        SocketException? last = null;
-        foreach (var address in addresses)
-        {
-            var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            try
-            {
-                await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken);
-                return new NetworkStream(socket, ownsSocket: true);
-            }
-            catch (SocketException ex)
-            {
-                socket.Dispose();
-                last = ex;
-            }
-        }
-
-        throw last!;
     }
 
     private static CheckOutcome Classify(HttpRequestException error, Uri uri, int elapsedMs)

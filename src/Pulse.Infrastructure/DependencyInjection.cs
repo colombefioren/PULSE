@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
 using Pulse.Application.Abstractions;
+using Pulse.Infrastructure.Alerts;
 using Pulse.Infrastructure.Checks;
 using Pulse.Infrastructure.Email;
 using Pulse.Infrastructure.Identity;
@@ -58,6 +60,13 @@ public static class DependencyInjection
         services.AddScoped<ILiveEvents, PostgresLiveEvents>();
         services.AddScoped<CheckPartitions>();
 
+        // Alerts: the API sends test alerts and the worker sends real ones, so both get the same transport.
+        services.TryAddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.AddSingleton<AlertHttp>();
+        services.AddScoped<IAlertTransport, AlertTransport>();
+        services.AddScoped<ISecretProtector, DataProtectionSecretProtector>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
+
         return services;
     }
 
@@ -65,9 +74,10 @@ public static class DependencyInjection
     public static IServiceCollection AddCheckEngine(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<CheckEngineOptions>(configuration.GetSection(CheckEngineOptions.Section));
-        services.AddSingleton<IAddressPolicy, PublicAddressPolicy>();
+        services.TryAddSingleton<IAddressPolicy, PublicAddressPolicy>();
         services.AddSingleton<IHttpChecker, HttpChecker>();
         services.AddSingleton<CheckEngine>();
+        services.AddSingleton<OutboxDispatcher>();
         return services;
     }
 }

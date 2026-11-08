@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Pulse.Application.Abstractions;
 using Pulse.Application.Common;
+using Pulse.Application.Incidents;
 using Pulse.Application.Organizations;
+using Pulse.Domain.Alerts;
 using Pulse.Domain.Monitors;
 using Pulse.Domain.Organizations;
 
@@ -12,6 +14,7 @@ public sealed class MonitorService(
     OrgAccess access,
     IMonitorUrlGuard urlGuard,
     IMonitorStats stats,
+    IncidentWorkflow incidents,
     ILiveEvents events,
     TimeProvider clock)
 {
@@ -30,12 +33,19 @@ public sealed class MonitorService(
             .ThenBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
         var aggregates = await stats.ForOrganizationAsync(organizationId, now.AddHours(-24), now, cancellationToken);
+        var links = await (
+                from link in db.MonitorAlertChannels.AsNoTracking()
+                join monitor in db.Monitors on link.MonitorId equals monitor.Id
+                where monitor.OrganizationId == organizationId
+                select new { link.MonitorId, link.ChannelId })
+            .ToListAsync(cancellationToken);
+        var channelsByMonitor = links.GroupBy(l => l.MonitorId).ToDictionary(g => g.Key, g => (IReadOnlyList<Guid>)g.Select(l => l.ChannelId).ToList());
 
         return monitors.Select(monitor =>
         {
             aggregates.TryGetValue(monitor.Id, out var found);
             return new MonitorListItemDto(
-                ToDto(monitor, membership.Role),
+                ToDto(monitor, membership.Role, channelsByMonitor.GetValueOrDefault(monitor.Id) ?? []),
                 found is null ? null : UptimeMath.Percent(found.Successes, found.Total),
                 found?.HourlyAverages ?? Enumerable.Repeat<int?>(null, 24).ToList());
         }).ToList();
@@ -44,13 +54,14 @@ public sealed class MonitorService(
     public async Task<MonitorDto> GetAsync(Guid monitorId, Guid userId, CancellationToken cancellationToken)
     {
         var (monitor, role) = await LoadAsync(monitorId, userId, Role.Viewer, track: false, cancellationToken);
-        return ToDto(monitor, role);
+        return ToDto(monitor, role, await ChannelIdsAsync(monitor.Id, cancellationToken));
     }
 
     public async Task<MonitorDto> CreateAsync(Guid organizationId, Guid userId, MonitorInput input, CancellationToken cancellationToken)
     {
         var membership = await access.RequireAsync(organizationId, userId, Role.Admin, cancellationToken);
         var uri = await ValidateAsync(input, cancellationToken);
+        var channelIds = await ValidChannelIdsAsync(organizationId, input.AlertChannelIds, cancellationToken);
 
         var existing = await db.Monitors.CountAsync(m => m.OrganizationId == organizationId, cancellationToken);
         if (existing >= HttpMonitor.MaxPerOrganization)
@@ -75,16 +86,18 @@ public sealed class MonitorService(
             BadgeEnabled = input.BadgeEnabled,
         };
         db.Monitors.Add(monitor);
+        await SetChannelsAsync(monitor.Id, channelIds, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await Announce("created", monitor, cancellationToken);
 
-        return ToDto(monitor, membership.Role);
+        return ToDto(monitor, membership.Role, channelIds);
     }
 
     public async Task<MonitorDto> UpdateAsync(Guid monitorId, Guid userId, MonitorInput input, CancellationToken cancellationToken)
     {
         var (monitor, role) = await LoadAsync(monitorId, userId, Role.Admin, track: true, cancellationToken);
         var uri = await ValidateAsync(input, cancellationToken);
+        var channelIds = await ValidChannelIdsAsync(monitor.OrganizationId, input.AlertChannelIds, cancellationToken);
         var now = clock.GetUtcNow();
 
         var codes = NormalizeCodes(input.ExpectedCodes);
@@ -110,36 +123,47 @@ public sealed class MonitorService(
         monitor.RecoveryThreshold = input.RecoveryThreshold;
         monitor.BadgeEnabled = input.BadgeEnabled;
 
+        IncidentChange? closed = null;
         if (checkChanged && !monitor.IsPaused)
         {
+            // The old outage belonged to the old check, so it ends here rather than lingering with no way to recover.
+            closed = await incidents.CloseQuietlyAsync(monitor, "The monitor's check was changed.", now, cancellationToken);
             monitor.ResetHistory(now);
         }
 
+        await SetChannelsAsync(monitor.Id, channelIds, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await Announce("updated", monitor, cancellationToken);
+        await AnnounceIncident(closed, cancellationToken);
 
-        return ToDto(monitor, role);
+        return ToDto(monitor, role, channelIds);
     }
 
     public async Task DeleteAsync(Guid monitorId, Guid userId, CancellationToken cancellationToken)
     {
         var (monitor, _) = await LoadAsync(monitorId, userId, Role.Admin, track: true, cancellationToken);
 
-        // Recorded checks go with it through the database's cascade.
+        var closed = await incidents.CloseQuietlyAsync(monitor, "The monitor was deleted.", clock.GetUtcNow(), cancellationToken);
+
+        // Recorded checks go with it through the database's cascade; its incidents stay as history.
         db.Monitors.Remove(monitor);
         await db.SaveChangesAsync(cancellationToken);
         await Announce("deleted", monitor, cancellationToken);
+        await AnnounceIncident(closed, cancellationToken);
     }
 
     public async Task<MonitorDto> PauseAsync(Guid monitorId, Guid userId, CancellationToken cancellationToken)
     {
         var (monitor, role) = await LoadAsync(monitorId, userId, Role.Admin, track: true, cancellationToken);
 
-        monitor.Pause(clock.GetUtcNow());
+        var now = clock.GetUtcNow();
+        var closed = monitor.IsPaused ? null : await incidents.CloseQuietlyAsync(monitor, "The monitor was paused.", now, cancellationToken);
+        monitor.Pause(now);
         await db.SaveChangesAsync(cancellationToken);
         await Announce("paused", monitor, cancellationToken);
+        await AnnounceIncident(closed, cancellationToken);
 
-        return ToDto(monitor, role);
+        return ToDto(monitor, role, await ChannelIdsAsync(monitor.Id, cancellationToken));
     }
 
     public async Task<MonitorDto> ResumeAsync(Guid monitorId, Guid userId, CancellationToken cancellationToken)
@@ -150,7 +174,7 @@ public sealed class MonitorService(
         await db.SaveChangesAsync(cancellationToken);
         await Announce("resumed", monitor, cancellationToken);
 
-        return ToDto(monitor, role);
+        return ToDto(monitor, role, await ChannelIdsAsync(monitor.Id, cancellationToken));
     }
 
     public async Task<CheckPageDto> ChecksAsync(Guid monitorId, Guid userId, DateTimeOffset? before, int? limit, CancellationToken cancellationToken)
@@ -243,6 +267,42 @@ public sealed class MonitorService(
         return uri;
     }
 
+    private async Task<List<Guid>> ChannelIdsAsync(Guid monitorId, CancellationToken cancellationToken) =>
+        await db.MonitorAlertChannels.AsNoTracking().Where(l => l.MonitorId == monitorId).Select(l => l.ChannelId).ToListAsync(cancellationToken);
+
+    /// <summary>Only channels of the monitor's own team may be chosen, so a monitor cannot be pointed at someone else's webhook.</summary>
+    private async Task<List<Guid>> ValidChannelIdsAsync(Guid organizationId, Guid[]? requested, CancellationToken cancellationToken)
+    {
+        var ids = (requested ?? []).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return ids;
+        }
+
+        var found = await db.AlertChannels.CountAsync(c => c.OrganizationId == organizationId && ids.Contains(c.Id), cancellationToken);
+        if (found != ids.Count)
+        {
+            throw new AppException(400, "validation_failed", "Some fields need attention.", new Dictionary<string, string[]> { ["alertChannelIds"] = ["Choose alert channels that belong to this team"] });
+        }
+
+        return ids;
+    }
+
+    private async Task SetChannelsAsync(Guid monitorId, IReadOnlyCollection<Guid> wanted, CancellationToken cancellationToken)
+    {
+        var current = await db.MonitorAlertChannels.Where(l => l.MonitorId == monitorId).ToListAsync(cancellationToken);
+        db.MonitorAlertChannels.RemoveRange(current.Where(l => !wanted.Contains(l.ChannelId)));
+        foreach (var channelId in wanted.Where(id => current.All(l => l.ChannelId != id)))
+        {
+            db.MonitorAlertChannels.Add(new MonitorAlertChannel(monitorId, channelId));
+        }
+    }
+
+    private Task AnnounceIncident(IncidentChange? change, CancellationToken cancellationToken) =>
+        change is null
+            ? Task.CompletedTask
+            : events.PublishAsync(new LiveEvent(change.Type, change.Incident.OrganizationId, IncidentEvents.Data(change.Incident)), cancellationToken);
+
     private Task Announce(string kind, HttpMonitor monitor, CancellationToken cancellationToken) =>
         events.PublishAsync(new LiveEvent("MonitorChanged", monitor.OrganizationId, new { monitorId = monitor.Id, kind }), cancellationToken);
 
@@ -254,7 +314,7 @@ public sealed class MonitorService(
         headers is null ? [] : headers.ToDictionary(h => h.Key.Trim(), h => h.Value.Trim());
 
     /// <summary>Header values often carry tokens, so people who can only read a monitor see them masked.</summary>
-    private static MonitorDto ToDto(HttpMonitor m, Role role) => new(
+    private static MonitorDto ToDto(HttpMonitor m, Role role, IReadOnlyList<Guid> channelIds) => new(
         m.Id,
         m.OrganizationId,
         m.Name,
@@ -275,5 +335,6 @@ public sealed class MonitorService(
         m.LastErrorType,
         m.LastErrorMessage,
         m.BadgeEnabled,
-        m.CreatedAt);
+        m.CreatedAt,
+        channelIds);
 }

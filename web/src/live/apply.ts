@@ -1,5 +1,6 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type { ApiMonitorState } from '@/api/types'
+import { incidentKeys } from '@/data/incidents'
 import { monitorKeys } from '@/data/monitors'
 import type { CheckView, MonitorView } from '@/data/monitorView'
 import type { MonitorStatus } from '@/data/types'
@@ -69,4 +70,22 @@ export function applyMonitorChanged(client: QueryClient, orgId: string, event: M
   }
   void client.invalidateQueries({ queryKey: monitorKeys.one(event.monitorId), exact: true })
   void client.invalidateQueries({ queryKey: monitorKeys.checks(event.monitorId) })
+}
+
+export interface IncidentEvent {
+  incidentId: string
+  monitorId: string | null
+  title: string
+}
+
+/** An incident opened, moved on or resolved: refresh the lists, the open one, and the dashboard counts. */
+export function applyIncidentChanged(client: QueryClient, event: IncidentEvent) {
+  void client.invalidateQueries({ queryKey: incidentKeys.all })
+  void client.invalidateQueries({ queryKey: incidentKeys.one(event.incidentId), exact: true })
+  void client.invalidateQueries({ queryKey: ['summary'] })
+}
+
+/** A monitor changed state: the dashboard counts and uptime move with it. */
+export function applyStatusChanged(client: QueryClient) {
+  void client.invalidateQueries({ queryKey: ['summary'] })
 }

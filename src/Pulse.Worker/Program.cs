@@ -1,3 +1,5 @@
+using Pulse.Application;
+using Pulse.Application.Common;
 using Pulse.Infrastructure;
 using Pulse.Worker;
 using Serilog;
@@ -18,11 +20,13 @@ try
         .Enrich.WithProperty("Service", "pulse-worker")
         .WriteTo.Console(new RenderedCompactJsonFormatter()));
 
-    builder.Services.AddSingleton(TimeProvider.System);
+    builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.Section));
+    builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddCheckEngine(builder.Configuration);
     builder.Services.AddHostedService<PartitionMaintenanceService>();
     builder.Services.AddHostedService<CheckEngineService>();
+    builder.Services.AddHostedService<AlertDispatcherService>();
 
     builder.Build().Run();
 }

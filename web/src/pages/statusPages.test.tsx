@@ -404,7 +404,7 @@ describe('Status page editor', () => {
     renderAt('/status-pages/sp-1', { demo: false })
 
     await user.click(await screen.findByRole('button', { name: 'Delete Checkout' }))
-    const dialog = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'))
+    const dialog = await screen.findByRole('dialog')
     expect(server.called('DELETE /api/status-pages/sp-1/components/c-2')).toHaveLength(0)
     await user.click(within(dialog).getByRole('button', { name: 'Remove component' }))
 

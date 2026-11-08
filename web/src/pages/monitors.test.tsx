@@ -50,7 +50,7 @@ const stats: ApiMonitorStats = {
   p50Ms: 140,
   p95Ms: 320,
   p99Ms: 810,
-  uptime: { last24Hours: 99.9, last7Days: 99.5, last30Days: 99.1 },
+  uptime: { last24Hours: 99.9, last7Days: 99.5, last30Days: 99.1, last90Days: 98.7 },
   series: [
     { at: '2026-11-08T09:00:00Z', avgMs: 140, checks: 60, failures: 0 },
     { at: '2026-11-08T10:00:00Z', avgMs: 160, checks: 60, failures: 1 },
@@ -217,6 +217,52 @@ describe('Monitor detail (signed in)', () => {
     expect(screen.getByText('200 OK')).toBeInTheDocument()
   })
 
+  it('shows the 90-day uptime next to the shorter ones', async () => {
+    mockApi({ ...signedIn(), ...detail() })
+    renderAt('/monitors/mon-1', { demo: false })
+
+    expect(await screen.findByText('Uptime, 90d')).toBeInTheDocument()
+    expect(await screen.findByText('98.7%')).toBeInTheDocument()
+  })
+
+  it('shows the badge address to copy only once the badge is on', async () => {
+    mockApi({ ...signedIn(), ...detail(monitor({ badgeEnabled: true })) })
+    renderAt('/monitors/mon-1', { demo: false })
+
+    expect(await screen.findByRole('heading', { name: 'Uptime badge' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Public API uptime badge' })).toHaveAttribute('src', '/badge/mon-1.svg')
+    expect(screen.getByTestId('badge-markdown')).toHaveTextContent('![Public API uptime](http://localhost:3000/badge/mon-1.svg)'.replace('http://localhost:3000', window.location.origin))
+    expect(screen.getByRole('button', { name: 'Copy Markdown' })).toBeInTheDocument()
+  })
+
+  it('has no badge panel while the badge is off', async () => {
+    mockApi({ ...signedIn(), ...detail() })
+    renderAt('/monitors/mon-1', { demo: false })
+
+    await screen.findByRole('heading', { level: 1, name: 'Public API' })
+    expect(screen.queryByRole('heading', { name: 'Uptime badge' })).not.toBeInTheDocument()
+  })
+
+  it('switches the badge on from the edit form', async () => {
+    const user = userEvent.setup()
+    const server = mockApi({
+      ...signedIn(),
+      ...detail(),
+      'PATCH /api/monitors/mon-1': { body: monitor({ badgeEnabled: true }) },
+    })
+    renderAt('/monitors/mon-1', { demo: false })
+
+    await user.click(await screen.findByRole('button', { name: 'Edit' }))
+    const toggle = screen.getByRole('checkbox', { name: 'Public uptime badge' })
+    expect(toggle).not.toBeChecked()
+    await user.click(screen.getByText('Advanced'))
+    await user.click(toggle)
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(server.called('PATCH /api/monitors/mon-1')).toHaveLength(1))
+    expect(server.called('PATCH /api/monitors/mon-1')[0]?.body).toMatchObject({ badgeEnabled: true })
+  })
+
   it('loads older checks on request', async () => {
     const user = userEvent.setup()
     const server = mockApi({
@@ -340,6 +386,7 @@ describe('live updates', () => {
     failureThreshold: 3,
     recoveryThreshold: 2,
     alertChannelIds: [],
+    badgeEnabled: false,
     status: 'up',
     lastResponseMs: 100,
     lastCheckedAt: Date.parse('2026-11-08T10:00:00Z'),

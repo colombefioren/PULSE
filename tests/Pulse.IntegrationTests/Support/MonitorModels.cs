@@ -17,7 +17,8 @@ public sealed record MonitorInfo(
     int RecoveryThreshold,
     string State,
     DateTimeOffset? LastCheckedAt,
-    int? LastResponseMs);
+    int? LastResponseMs,
+    bool BadgeEnabled = false);
 
 public sealed record MonitorListItem(MonitorInfo Monitor, double? Uptime24h, List<int?> Sparkline);
 

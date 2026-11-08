@@ -150,6 +150,7 @@ try
     app.MapAlertEndpoints();
     app.MapStatusPageEndpoints();
     app.MapPublicStatusEndpoints();
+    app.MapBadgeEndpoints();
     app.MapHub<LiveHub>(LiveHub.Path);
     app.MapHub<StatusHub>(StatusHub.Path);
 

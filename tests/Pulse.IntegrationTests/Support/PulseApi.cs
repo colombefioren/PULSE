@@ -83,6 +83,7 @@ public sealed class PulseApi : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:PublicWritePermitsPerMinute", "100000");
         // Tests look at a page right after changing it, so the public page is not cached unless a test asks for it.
         builder.UseSetting("StatusPage:CacheSeconds", "0");
+        builder.UseSetting("Badge:CacheSeconds", "0");
 
         builder.ConfigureServices(services =>
         {

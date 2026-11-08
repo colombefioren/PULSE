@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<OrganizationService>();
         services.AddScoped<InviteService>();
         services.AddScoped<MonitorService>();
+        services.AddScoped<BadgeService>();
         services.AddScoped<IncidentWorkflow>();
         services.AddScoped<IncidentService>();
         services.AddScoped<AlertChannelService>();

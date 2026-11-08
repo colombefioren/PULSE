@@ -205,6 +205,7 @@ public sealed class MonitorService(
         var day = await stats.RangeAsync(monitorId, now.AddHours(-24), cancellationToken);
         var week = await stats.RangeAsync(monitorId, now.AddDays(-7), cancellationToken);
         var month = await stats.RangeAsync(monitorId, now.AddDays(-30), cancellationToken);
+        var quarter = await stats.NinetyDaysAsync(monitorId, now, cancellationToken);
 
         return new MonitorStatsDto(
             range.Name,
@@ -217,7 +218,8 @@ public sealed class MonitorService(
             new UptimeDto(
                 UptimeMath.Percent(day.Successes, day.Total),
                 UptimeMath.Percent(week.Successes, week.Total),
-                UptimeMath.Percent(month.Successes, month.Total)),
+                UptimeMath.Percent(month.Successes, month.Total),
+                UptimeMath.Percent(quarter.Successes, quarter.Total)),
             series);
     }
 

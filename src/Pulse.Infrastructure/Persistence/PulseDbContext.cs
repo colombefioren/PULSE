@@ -289,6 +289,15 @@ public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options)
         {
             stat.ToTable("monitor_daily_stats");
             stat.HasKey(s => new { s.MonitorId, s.Day });
+            stat.Property(s => s.P95Ms).HasColumnName("p95_ms");
+            stat.HasOne<HttpMonitor>().WithMany().HasForeignKey(s => s.MonitorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<MonitorHourlyStat>(stat =>
+        {
+            stat.ToTable("monitor_hourly_stats");
+            stat.HasKey(s => new { s.MonitorId, s.Hour });
+            stat.Property(s => s.P95Ms).HasColumnName("p95_ms");
             stat.HasOne<HttpMonitor>().WithMany().HasForeignKey(s => s.MonitorId).OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -60,6 +60,8 @@ public static class DependencyInjection
         services.AddScoped<ILiveEvents, PostgresLiveEvents>();
         services.AddScoped<CheckPartitions>();
         services.AddScoped<DailyRollup>();
+        services.AddScoped<HourlyRollup>();
+        services.AddScoped<CheckRetention>();
 
         // Alerts: the API sends test alerts and the worker sends real ones, so both get the same transport.
         services.TryAddSingleton<IAddressPolicy, PublicAddressPolicy>();

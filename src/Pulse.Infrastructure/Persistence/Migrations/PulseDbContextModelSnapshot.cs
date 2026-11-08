@@ -689,6 +689,10 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("checks");
 
+                    b.Property<int?>("P95Ms")
+                        .HasColumnType("integer")
+                        .HasColumnName("p95_ms");
+
                     b.Property<int>("Successes")
                         .HasColumnType("integer")
                         .HasColumnName("successes");
@@ -697,6 +701,38 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .HasName("pk_monitor_daily_stats");
 
                     b.ToTable("monitor_daily_stats", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Monitors.MonitorHourlyStat", b =>
+                {
+                    b.Property<Guid>("MonitorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("monitor_id");
+
+                    b.Property<DateTimeOffset>("Hour")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hour");
+
+                    b.Property<int?>("AvgMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("avg_ms");
+
+                    b.Property<int>("Checks")
+                        .HasColumnType("integer")
+                        .HasColumnName("checks");
+
+                    b.Property<int?>("P95Ms")
+                        .HasColumnType("integer")
+                        .HasColumnName("p95_ms");
+
+                    b.Property<int>("Successes")
+                        .HasColumnType("integer")
+                        .HasColumnName("successes");
+
+                    b.HasKey("MonitorId", "Hour")
+                        .HasName("pk_monitor_hourly_stats");
+
+                    b.ToTable("monitor_hourly_stats", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Domain.Organizations.Invite", b =>
@@ -1264,6 +1300,16 @@ namespace Pulse.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_monitor_daily_stats_monitors_monitor_id");
+                });
+
+            modelBuilder.Entity("Pulse.Domain.Monitors.MonitorHourlyStat", b =>
+                {
+                    b.HasOne("Pulse.Domain.Monitors.HttpMonitor", null)
+                        .WithMany()
+                        .HasForeignKey("MonitorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_monitor_hourly_stats_monitors_monitor_id");
                 });
 
             modelBuilder.Entity("Pulse.Domain.Organizations.Invite", b =>

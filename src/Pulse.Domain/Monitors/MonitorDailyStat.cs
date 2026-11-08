@@ -10,13 +10,14 @@ public sealed class MonitorDailyStat
     {
     }
 
-    public MonitorDailyStat(Guid monitorId, DateOnly day, int checks, int successes, int? avgMs)
+    public MonitorDailyStat(Guid monitorId, DateOnly day, int checks, int successes, int? avgMs, int? p95Ms = null)
     {
         MonitorId = monitorId;
         Day = day;
         Checks = checks;
         Successes = successes;
         AvgMs = avgMs;
+        P95Ms = p95Ms;
     }
 
     public Guid MonitorId { get; private set; }
@@ -29,4 +30,7 @@ public sealed class MonitorDailyStat
 
     /// <summary>Average response time of the passing checks.</summary>
     public int? AvgMs { get; private set; }
+
+    /// <summary>95th percentile response time of the passing checks.</summary>
+    public int? P95Ms { get; private set; }
 }

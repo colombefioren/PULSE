@@ -21,8 +21,7 @@
 
 Pulse checks websites and APIs on a schedule, notices when one stops answering, tells your team by email, Slack,
 Discord or webhook, and publishes a live public status page your customers can read and subscribe to. Monitoring
-and a status page in one place, on .NET 10, React and PostgreSQL, built so the interesting parts (partitioned
-storage, a database-backed job queue, an outbox, live updates without a message broker) are small enough to read.
+and a status page in one place, on .NET 10, React and PostgreSQL, built so the interesting parts are small enough to read.
 
 **Status: v1.0.0.** Try it with one click on the landing page: "Try the demo" opens a read-only team that watches
 real public websites, or a built-in sample workspace when the server has no demo.

@@ -62,7 +62,7 @@ jobs:
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
 
   # Applies EF Core migrations to the preprod database as its own step, after the images exist.
-  # Enabled once a preprod database and its connection secret are configured (docs/decisions.md).
+  # Enabled once a preprod database and its connection secret are configured (docs/adr).
   migrate:
     name: Migrate preprod database
     needs: publish
